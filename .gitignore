@@ -90,12 +90,28 @@ Thumbs.db
 # Coverage / test
 # =========================
 .coverage
+.coverage.*
 htmlcov/
 .pytest_cache/
+.hypothesis/
+.tox/
+.nox/
+
+# =========================
+# Typecheck / lint caches
+# =========================
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# =========================
+# PEP 582 / local python
+# =========================
+__pypackages__/
+.python-version
 
 # =========================
 # Secrets
 # =========================
 .env
 .env.*
-
