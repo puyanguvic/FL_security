@@ -1,0 +1,35 @@
+[project]
+name = "nvflare-lab"
+version = "0.1.0"
+description = "Research-ready NVFLARE experimentation lab: pluggable algorithms and tasks (uv-friendly)."
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Pu Yang" }]
+
+dependencies = [
+  "nvflare>=2.5.0",
+  "torch>=2.1",
+  "torchvision>=0.16",
+  "numpy>=1.24, <2.4",
+  "tensorboard>=2.14",
+  "tqdm>=4.66",
+  "pyyaml>=6.0.1",
+]
+
+[project.scripts]
+flbench-run = "flbench.scripts.run_sim:main"
+
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flbench"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
