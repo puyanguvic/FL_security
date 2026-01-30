@@ -61,10 +61,14 @@ def list_tasks() -> Tuple[str, ...]:
 # -------------------------
 def _register_builtin() -> None:
     from flbench.algorithms.fedavg.job import run_fedavg
+    from flbench.algorithms.fedprox.job import run_fedprox
+    from flbench.algorithms.scaffold.job import run_scaffold
     from flbench.tasks.vision.cifar10 import task as cifar10_task
     from flbench.tasks.vision.fashionmnist import task as fashion_task
 
     register_algo(AlgoSpec(name="fedavg", run=run_fedavg))
+    register_algo(AlgoSpec(name="fedprox", run=run_fedprox))
+    register_algo(AlgoSpec(name="scaffold", run=run_scaffold))
     register_task(
         TaskSpec(
             name="vision/cifar10",

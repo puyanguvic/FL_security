@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--batch_size", type=int, default=64)
     p.add_argument("--lr", type=float, default=5e-2)
     p.add_argument("--num_workers", type=int, default=2)
+    p.add_argument("--prox_mu", type=float, default=0.0, help="FedProx mu coefficient (only for fedprox).")
 
     # Non-iid split knobs (task-dependent; CIFAR-10 uses alpha)
     p.add_argument("--alpha", type=float, default=0.5, help="Dirichlet alpha (for non-iid splits).")

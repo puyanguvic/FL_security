@@ -1,1 +1,1 @@
-__all__ = ["fedavg"]
+__all__ = ["fedavg", "fedprox", "scaffold"]
