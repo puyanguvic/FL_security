@@ -1,0 +1,101 @@
+# =========================
+# Python / Bytecode
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
+
+# =========================
+# Packaging / build
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# uv / pip
+# =========================
+uv.lock
+pip-wheel-metadata/
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Logs / temp files
+# =========================
+*.log
+*.tmp
+*.swp
+*.swo
+
+# =========================
+# NVFLARE runtime artifacts
+# =========================
+/tmp/
+nvflare_workspace/
+nvflare_simulation/
+**/simulation/
+**/run_*/
+
+# Common NVFLARE default locations
+/tmp/nvflare/
+/tmp/flbench_splits/
+
+# =========================
+# TensorBoard
+# =========================
+runs/
+tensorboard/
+**/events.out.tfevents.*
+
+# =========================
+# Data / Datasets (IMPORTANT)
+# =========================
+data/
+dataset/
+datasets/
+raw_data/
+processed_data/
+
+# common ML artifacts
+*.npy
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pkl
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# =========================
+# Coverage / test
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# =========================
+# Secrets
+# =========================
+.env
+.env.*
+
