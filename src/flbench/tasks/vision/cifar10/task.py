@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flbench.models.cnn import ModerateCNN
+from flbench.models.vision import AlexNetSmall, VGG11Small
 from flbench.tasks.vision.cifar10 import dataset as _dataset
 from flbench.tasks.vision.cifar10.split import split_and_save as _split_and_save
 
@@ -16,6 +17,10 @@ def build_model(model_key: str):
         model_key = default_model
     if model_key == "cnn/moderate":
         return ModerateCNN(in_channels=3, input_size=32)
+    if model_key == "vgg11":
+        return VGG11Small(num_classes=10, in_channels=3, min_input_size=32)
+    if model_key == "alexnet":
+        return AlexNetSmall(num_classes=10, in_channels=3)
     raise ValueError(f"Unsupported model '{model_key}' for task vision/cifar10")
 
 
