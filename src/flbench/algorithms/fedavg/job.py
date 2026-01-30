@@ -1,8 +1,11 @@
 """FedAvg algorithm runner (NVFLARE recipe) for simulation."""
 from __future__ import annotations
 
+import datetime as _dt
 import os
 import logging
+import shutil
+from pathlib import Path
 from nvflare.apis.dxo import DataKind
 from nvflare.app_common.aggregators import InTimeAccumulateWeightedAggregator
 from nvflare.app_opt.pt.recipes.fedavg import FedAvgRecipe
@@ -12,6 +15,33 @@ from flbench.models.cnn import ModerateCNN
 from flbench.tasks.vision.cifar10.split import split_and_save
 
 logging.getLogger("nvflare").setLevel(logging.ERROR)
+
+
+def _copy_run_result_to_results_dir(*, run_result: str | None, results_dir: str, job_name: str) -> Path | None:
+    if not results_dir:
+        return None
+    if not run_result:
+        return None
+
+    src = Path(run_result)
+    if not src.exists():
+        return None
+
+    results_root = Path(results_dir).expanduser()
+    results_root.mkdir(parents=True, exist_ok=True)
+
+    dest = results_root / job_name
+    if dest.exists():
+        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest = results_root / f"{job_name}__{ts}"
+
+    if src.is_dir():
+        shutil.copytree(src, dest)
+    else:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+
+    return dest
 
 
 def run_fedavg(args) -> None:
@@ -72,6 +102,16 @@ def run_fedavg(args) -> None:
     env = SimEnv(num_clients=n_clients)
     run = recipe.execute(env)
 
-    print("\nJob Status is:", run.get_status())
-    print("Result can be found in:", run.get_result())
+    status = run.get_status()
+    run_result = run.get_result()
+    print("\nJob Status is:", status)
+    print("Result can be found in:", run_result)
+
+    copied_to = _copy_run_result_to_results_dir(
+        run_result=run_result,
+        results_dir=getattr(args, "results_dir", "results"),
+        job_name=job_name,
+    )
+    if copied_to is not None:
+        print("Results copied to:", str(copied_to))
     print()

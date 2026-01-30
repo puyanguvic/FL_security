@@ -11,6 +11,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--task", type=str, required=True, help=f"Task. Available: {', '.join(list_tasks())}")
     p.add_argument("--model", type=str, default="cnn/moderate", help="Model key (task may ignore it).")
     p.add_argument("--name", type=str, default=None, help="Optional run/job name override")
+    p.add_argument(
+        "--results_dir",
+        type=str,
+        default="results",
+        help="Directory to copy NVFLARE simulation outputs into (default: ./results).",
+    )
 
     # Common FL knobs
     p.add_argument("--n_clients", type=int, default=8)

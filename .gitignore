@@ -41,6 +41,11 @@ pip-wheel-metadata/
 *.swo
 
 # =========================
+# Experiment outputs
+# =========================
+results/
+
+# =========================
 # NVFLARE runtime artifacts
 # =========================
 /tmp/

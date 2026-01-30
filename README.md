@@ -23,7 +23,7 @@ flbench-run --algo fedavg --task vision/cifar10 --model cnn/moderate --n_clients
 
 ### Where outputs go
 - Data split indices: `/tmp/flbench_splits/...`
-- NVFLARE run result path is printed at the end
+- NVFLARE run result path is printed at the end and copied to `./results/<job_name>/` (override with `--results_dir`)
 - Tensorboard tracking is enabled by default (via recipe tracking)
 
 ## Extend
