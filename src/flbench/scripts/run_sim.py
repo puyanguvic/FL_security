@@ -32,6 +32,19 @@ def build_parser() -> argparse.ArgumentParser:
     # Repro
     p.add_argument("--seed", type=int, default=0)
 
+    # Simulation workspace behavior
+    p.add_argument(
+        "--sim_workspace_root",
+        type=str,
+        default="/tmp/nvflare/simulation",
+        help="NVFLARE simulation workspace root (default: /tmp/nvflare/simulation).",
+    )
+    p.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from existing NVFLARE simulation workspace if present (default: start fresh).",
+    )
+
     # Tracking
     p.add_argument("--tracking", type=str, default="tensorboard", choices=["tensorboard", "none"])
 

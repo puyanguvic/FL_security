@@ -9,6 +9,7 @@ A research-ready **NVFLARE experimentation lab** with a clean separation between
 This repo currently includes:
 - `algo=fedavg`
 - `task=vision/cifar10`
+- `task=vision/fashionmnist`
 - `model=cnn/moderate`
 
 ## Quickstart (uv)
@@ -19,6 +20,9 @@ uv pip install -e .
 
 # Run FedAvg on CIFAR-10 (simulation)
 flbench-run --algo fedavg --task vision/cifar10 --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
+
+# Run FedAvg on FashionMNIST (simulation)
+flbench-run --algo fedavg --task vision/fashionmnist --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
 ```
 
 ### Where outputs go
@@ -37,8 +41,8 @@ Register it in `src/flbench/core/registry.py`.
 
 ### Add a new task
 Create a folder under `src/flbench/tasks/<domain>/<task_name>/` with:
+- `dataset.py` (dataset + loaders + task-specific augmentations)
 - `split.py` (optional non-iid split)
-- `dataset.py` (dataset + loaders)
-- `model.py` (optional task-specific model)
+- `task.py` (task wrapper: `build_model`, `split_and_save`, exports dataset factories)
 
 Register it in `src/flbench/core/registry.py`.

@@ -1,1 +1,1 @@
-__all__ = ["cifar10"]
+__all__ = ["cifar10", "fashionmnist"]

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import random
 from typing import Dict, List, Tuple
 
-import random
 import numpy as np
 import torch
 import torch.nn as nn

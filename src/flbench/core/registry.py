@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 
 @dataclass(frozen=True)
@@ -13,6 +13,12 @@ class AlgoSpec:
 @dataclass(frozen=True)
 class TaskSpec:
     name: str
+    build_model: Callable[[str], Any]
+    split_and_save: Callable[..., str]
+    create_datasets: Callable[..., Any]
+    create_data_loaders: Callable[..., Any]
+    default_split_root: str
+    default_model: str = "cnn/moderate"
 
 
 # -------------------------
@@ -55,9 +61,32 @@ def list_tasks() -> Tuple[str, ...]:
 # -------------------------
 def _register_builtin() -> None:
     from flbench.algorithms.fedavg.job import run_fedavg
+    from flbench.tasks.vision.cifar10 import task as cifar10_task
+    from flbench.tasks.vision.fashionmnist import task as fashion_task
 
     register_algo(AlgoSpec(name="fedavg", run=run_fedavg))
-    register_task(TaskSpec(name="vision/cifar10"))
+    register_task(
+        TaskSpec(
+            name="vision/cifar10",
+            build_model=cifar10_task.build_model,
+            split_and_save=cifar10_task.split_and_save,
+            create_datasets=cifar10_task.create_datasets,
+            create_data_loaders=cifar10_task.create_data_loaders,
+            default_split_root=cifar10_task.default_split_root,
+            default_model=cifar10_task.default_model,
+        )
+    )
+    register_task(
+        TaskSpec(
+            name="vision/fashionmnist",
+            build_model=fashion_task.build_model,
+            split_and_save=fashion_task.split_and_save,
+            create_datasets=fashion_task.create_datasets,
+            create_data_loaders=fashion_task.create_data_loaders,
+            default_split_root=fashion_task.default_split_root,
+            default_model=fashion_task.default_model,
+        )
+    )
 
 
 _register_builtin()

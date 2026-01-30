@@ -4,17 +4,14 @@ import argparse
 import copy
 import logging
 
+import nvflare.client as flare
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-import nvflare.client as flare
+from nvflare.apis.fl_constant import FLMetaKey
 from nvflare.app_common.abstract.fl_model import ParamsType
 from nvflare.client.tracking import SummaryWriter
-from nvflare.apis.fl_constant import FLMetaKey
 
-from flbench.models.cnn import ModerateCNN
-from flbench.tasks.vision.cifar10.dataset import create_data_loaders, create_datasets
 from flbench.utils.torch_utils import compute_model_diff, evaluate, get_lr_values, set_seed
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -27,7 +24,11 @@ logging.getLogger("nvflare").setLevel(logging.ERROR)
 def main(args):
     set_seed(args.seed)
 
-    model = ModerateCNN()
+    from flbench.core.registry import get_task
+
+    task_spec = get_task(args.task)
+    model = task_spec.build_model(args.model)
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     scheduler = None
@@ -36,8 +37,10 @@ def main(args):
     site_name = flare.get_site_name()
     print(f"Create datasets for site {site_name}")
 
-    train_dataset, valid_dataset = create_datasets(site_name, train_idx_root=args.train_idx_root, seed=args.seed)
-    train_loader, valid_loader = create_data_loaders(
+    train_dataset, valid_dataset = task_spec.create_datasets(
+        site_name, train_idx_root=args.train_idx_root, seed=args.seed
+    )
+    train_loader, valid_loader = task_spec.create_data_loaders(
         train_dataset, valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers
     )
 
@@ -54,7 +57,19 @@ def main(args):
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
             print(f"{site_name}: CosineAnnealingLR: initial_lr={args.lr}, eta_min={eta_min}, T_max={T_max}")
 
-        model.load_state_dict(input_model.params, strict=True)
+        try:
+            model.load_state_dict(input_model.params, strict=True)
+        except RuntimeError as e:
+            msg = str(e)
+            if "size mismatch" in msg:
+                raise RuntimeError(
+                    "Global model shape mismatch between server and client.\n"
+                    f"- client: task={args.task} model={args.model}\n"
+                    "This usually happens when an old NVFLARE simulation workspace is reused (stale checkpoint) "
+                    "or when server/client tasks differ.\n"
+                    "Fix: rerun with a fresh job name or without `--resume` (default clears the sim workspace)."
+                ) from e
+            raise
 
         global_model = copy.deepcopy(model)
         for p in global_model.parameters():
@@ -130,6 +145,8 @@ def main(args):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
+    p.add_argument("--task", type=str, default="vision/cifar10", help="Task key (e.g., vision/cifar10).")
+    p.add_argument("--model", type=str, default="cnn/moderate", help="Model key (task resolves it).")
     p.add_argument("--train_idx_root", type=str, default="/tmp/flbench_splits", help="Split index root dir")
     p.add_argument("--aggregation_epochs", type=int, default=4, help="Local epochs per FL round")
     p.add_argument("--lr", type=float, default=1e-2, help="Learning rate")

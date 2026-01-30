@@ -11,16 +11,16 @@ from torchvision import datasets, transforms
 def _default_transforms():
     train_tf = transforms.Compose(
         [
-            transforms.RandomCrop(32, padding=4),
+            transforms.RandomCrop(28, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+            transforms.Normalize((0.2860,), (0.3530,)),
         ]
     )
     test_tf = transforms.Compose(
         [
             transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
+            transforms.Normalize((0.2860,), (0.3530,)),
         ]
     )
     return train_tf, test_tf
@@ -28,10 +28,10 @@ def _default_transforms():
 
 def create_datasets(site_name: str, train_idx_root: str, val_fraction: float = 0.1, seed: int = 0):
     train_tf, test_tf = _default_transforms()
-    base_train = datasets.CIFAR10(
+    base_train = datasets.FashionMNIST(
         root=os.path.expanduser("~/.torch/data"), train=True, download=True, transform=train_tf
     )
-    base_train_noaug = datasets.CIFAR10(
+    base_train_noaug = datasets.FashionMNIST(
         root=os.path.expanduser("~/.torch/data"), train=True, download=False, transform=test_tf
     )
 
@@ -73,3 +73,4 @@ def create_data_loaders(train_dataset, valid_dataset, batch_size: int = 64, num_
         drop_last=False,
     )
     return train_loader, valid_loader
+

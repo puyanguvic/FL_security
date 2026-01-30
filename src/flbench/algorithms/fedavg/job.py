@@ -2,17 +2,16 @@
 from __future__ import annotations
 
 import datetime as _dt
-import os
+import json
 import logging
+import os
 import shutil
 from pathlib import Path
+
 from nvflare.apis.dxo import DataKind
 from nvflare.app_common.aggregators import InTimeAccumulateWeightedAggregator
 from nvflare.app_opt.pt.recipes.fedavg import FedAvgRecipe
 from nvflare.recipe import SimEnv, add_experiment_tracking
-
-from flbench.models.cnn import ModerateCNN
-from flbench.tasks.vision.cifar10.split import split_and_save
 
 logging.getLogger("nvflare").setLevel(logging.ERROR)
 
@@ -44,9 +43,34 @@ def _copy_run_result_to_results_dir(*, run_result: str | None, results_dir: str,
     return dest
 
 
+def _build_run_meta(args) -> dict:
+    return {
+        "task": args.task,
+        "model": args.model,
+        "alpha": args.alpha,
+        "n_clients": args.n_clients,
+        "num_rounds": args.num_rounds,
+        "aggregation_epochs": args.aggregation_epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "seed": args.seed,
+    }
+
+
+def _load_run_meta(meta_path: str) -> dict | None:
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def run_fedavg(args) -> None:
-    if args.task != "vision/cifar10":
-        raise ValueError(f"fedavg runner currently supports task=vision/cifar10 only (got {args.task}).")
+    from flbench.core.registry import get_task
+
+    task_spec = get_task(args.task)
 
     n_clients = args.n_clients
     num_rounds = args.num_rounds
@@ -55,23 +79,26 @@ def run_fedavg(args) -> None:
     lr = args.lr
     batch_size = args.batch_size
     aggregation_epochs = args.aggregation_epochs
-    job_name = args.name if args.name else f"fedavg__cifar10__alpha{alpha}"
+    task_short = args.task.replace("/", "__")
+    job_name = args.name if args.name else f"fedavg__{task_short}__alpha{alpha}"
 
     print(f"Running FedAvg ({num_rounds} rounds) task={args.task} alpha={alpha} clients={n_clients}")
 
     if alpha <= 0.0:
         raise ValueError("alpha must be > 0 for Dirichlet non-iid split")
 
-    split_root = "/tmp/flbench_splits/cifar10"
-    train_idx_root = split_and_save(
+    split_root = task_spec.default_split_root
+    train_idx_root = task_spec.split_and_save(
         num_sites=n_clients,
-        alpha=alpha,
         split_dir_prefix=os.path.join(split_root, "dirichlet"),
         seed=args.seed,
+        alpha=alpha,
     )
 
     train_script = os.path.join(os.path.dirname(__file__), "client.py")
     train_args = (
+        f"--task {args.task} "
+        f"--model {args.model} "
         f"--train_idx_root {train_idx_root} "
         f"--num_workers {num_workers} "
         f"--lr {lr} "
@@ -84,7 +111,7 @@ def run_fedavg(args) -> None:
         name=job_name,
         min_clients=n_clients,
         num_rounds=num_rounds,
-        initial_model=ModerateCNN(),
+        initial_model=task_spec.build_model(args.model),
         train_script=train_script,
         train_args=train_args,
         aggregator=InTimeAccumulateWeightedAggregator(
@@ -99,7 +126,31 @@ def run_fedavg(args) -> None:
     if args.tracking != "none":
         add_experiment_tracking(recipe, tracking_type=args.tracking)
 
-    env = SimEnv(num_clients=n_clients)
+    sim_workspace_root = getattr(args, "sim_workspace_root", "/tmp/nvflare/simulation")
+    job_workspace = os.path.join(sim_workspace_root, job_name)
+    meta_path = os.path.join(job_workspace, "flbench_run_meta.json")
+    if getattr(args, "resume", False) and os.path.exists(job_workspace):
+        existing_meta = _load_run_meta(meta_path)
+        if existing_meta is not None:
+            if (
+                existing_meta.get("task") != args.task
+                or existing_meta.get("model") != args.model
+            ):
+                raise RuntimeError(
+                    "Refusing to resume: task/model mismatch with existing workspace.\n"
+                    f"- existing: task={existing_meta.get('task')} model={existing_meta.get('model')}\n"
+                    f"- current:  task={args.task} model={args.model}\n"
+                    "Fix: use a new job name, or delete the existing workspace."
+                )
+        else:
+            print(
+                "Warning: resume requested but existing workspace metadata is missing or unreadable. "
+                "If you see model shape mismatch errors, use a new job name or delete the workspace."
+            )
+    elif os.path.exists(job_workspace):
+        shutil.rmtree(job_workspace, ignore_errors=True)
+
+    env = SimEnv(num_clients=n_clients, workspace_root=sim_workspace_root)
     run = recipe.execute(env)
 
     status = run.get_status()
@@ -115,3 +166,10 @@ def run_fedavg(args) -> None:
     if copied_to is not None:
         print("Results copied to:", str(copied_to))
     print()
+
+    if os.path.exists(job_workspace):
+        try:
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(_build_run_meta(args), f, indent=2, sort_keys=True)
+        except OSError:
+            pass
