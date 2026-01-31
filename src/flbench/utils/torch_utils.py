@@ -32,6 +32,28 @@ def evaluate(model: nn.Module, dataloader) -> float:
     return float(correct) / float(total) if total > 0 else 0.0
 
 
+@torch.no_grad()
+def evaluate_with_loss(model: nn.Module, dataloader, criterion: nn.Module) -> Tuple[float, float]:
+    model.eval()
+    device = next(model.parameters()).device
+    correct = 0
+    total = 0
+    total_loss = 0.0
+    for x, y in dataloader:
+        x = x.to(device)
+        y = y.to(device)
+        logits = model(x)
+        loss = criterion(logits, y)
+        batch_size = y.numel()
+        total_loss += loss.item() * batch_size
+        pred = logits.argmax(dim=1)
+        correct += (pred == y).sum().item()
+        total += batch_size
+    avg_loss = float(total_loss) / float(total) if total > 0 else 0.0
+    acc = float(correct) / float(total) if total > 0 else 0.0
+    return avg_loss, acc
+
+
 def get_lr_values(optimizer) -> List[float]:
     return [group["lr"] for group in optimizer.param_groups]
 

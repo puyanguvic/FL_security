@@ -12,7 +12,7 @@ from nvflare.apis.fl_constant import FLMetaKey
 from nvflare.app_common.abstract.fl_model import ParamsType
 from nvflare.client.tracking import SummaryWriter
 
-from flbench.utils.torch_utils import compute_model_diff, evaluate, get_lr_values, set_seed
+from flbench.utils.torch_utils import compute_model_diff, evaluate, evaluate_with_loss, get_lr_values, set_seed
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
@@ -85,9 +85,14 @@ def main(args):
         model.to(DEVICE)
         global_model.to(DEVICE)
 
-        val_acc_global_model = evaluate(global_model, valid_loader)
-        print(f"Global model accuracy on validation set: {100 * val_acc_global_model:.2f}%")
+        val_loss_global_model, val_acc_global_model = evaluate_with_loss(global_model, valid_loader, criterion)
+        print(
+            "Global model validation - "
+            f"acc: {100 * val_acc_global_model:.2f}% "
+            f"loss: {val_loss_global_model:.4f}"
+        )
         summary_writer.add_scalar("val_acc_global_model", val_acc_global_model, input_model.current_round)
+        summary_writer.add_scalar("val_loss_global_model", val_loss_global_model, input_model.current_round)
 
         steps = args.aggregation_epochs * len(train_loader)
 
@@ -145,7 +150,7 @@ def main(args):
         output_model = flare.FLModel(
             params=model_diff,
             params_type=ParamsType.DIFF,
-            metrics={"accuracy": val_acc_global_model},
+            metrics={"accuracy": val_acc_global_model, "loss": val_loss_global_model},
             meta=meta,
         )
 
