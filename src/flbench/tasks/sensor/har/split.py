@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import os
+import zipfile
+from pathlib import Path
+from urllib.request import urlretrieve
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
-from torchvision import datasets
+
+DEFAULT_ROOT = os.path.expanduser("~/.torch/data/har/UCI HAR Dataset")
+DEFAULT_URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00240/UCI%20HAR%20Dataset.zip"
 
 
 @dataclass
@@ -17,6 +22,29 @@ class SplitPaths:
 
     def site_train_idx(self, site_name: str) -> str:
         return os.path.join(self.site_dir(site_name), "train_idx.npy")
+
+
+def _load_labels(root: str) -> np.ndarray:
+    x_path = os.path.join(root, "train", "X_train.txt")
+    y_path = os.path.join(root, "train", "y_train.txt")
+    if not os.path.exists(x_path) or not os.path.exists(y_path):
+        root_path = Path(root)
+        data_root = root_path.parent
+        data_root.mkdir(parents=True, exist_ok=True)
+        zip_path = data_root / "UCI_HAR_Dataset.zip"
+        if not zip_path.exists():
+            print(f"Downloading UCI HAR Dataset to {zip_path} ...")
+            urlretrieve(DEFAULT_URL, zip_path)
+        print(f"Extracting UCI HAR Dataset into {data_root} ...")
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(data_root)
+        if not os.path.exists(x_path) or not os.path.exists(y_path):
+            raise FileNotFoundError(
+                f"UCI HAR train files not found after extraction: {x_path} and {y_path}. "
+                "Please verify the dataset archive."
+            )
+    y = np.loadtxt(y_path, dtype=np.int64).reshape(-1)
+    return y - 1
 
 
 def _dirichlet_split_indices(labels: np.ndarray, num_sites: int, alpha: float, seed: int = 0) -> List[np.ndarray]:
@@ -37,7 +65,6 @@ def _dirichlet_split_indices(labels: np.ndarray, num_sites: int, alpha: float, s
         proportions = rng.dirichlet(alpha * np.ones(num_sites))
         counts = (proportions * len(idx_c)).astype(int)
 
-        # rounding fix
         diff = len(idx_c) - counts.sum()
         if diff > 0:
             frac = proportions * len(idx_c) - counts
@@ -69,13 +96,11 @@ def split_and_save(
     seed: int = 0,
     data_root: str | None = None,
 ) -> str:
-    """Download FashionMNIST and save per-site train indices."""
     if alpha <= 0:
         raise ValueError("alpha must be > 0")
 
-    root = data_root or os.path.expanduser("~/.torch/data")
-    train = datasets.FashionMNIST(root=root, train=True, download=True)
-    labels = np.array(train.targets, dtype=np.int64)
+    root = data_root or DEFAULT_ROOT
+    labels = _load_labels(root)
 
     train_idx_root = f"{split_dir_prefix}_alpha{alpha}_sites{num_sites}_seed{seed}"
     paths = SplitPaths(root=train_idx_root)

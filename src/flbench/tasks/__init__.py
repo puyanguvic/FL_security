@@ -1,1 +1,1 @@
-__all__ = ["vision"]
+__all__ = ["vision", "sensor"]

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import os
+import zipfile
+from pathlib import Path
+from urllib.request import urlretrieve
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
 from torchvision import datasets
+
+DEFAULT_ROOT = os.path.expanduser("~/.torch/data/tiny-imagenet-200")
+DEFAULT_URL = "http://cs231n.stanford.edu/tiny-imagenet-200.zip"
 
 
 @dataclass
@@ -37,7 +43,6 @@ def _dirichlet_split_indices(labels: np.ndarray, num_sites: int, alpha: float, s
         proportions = rng.dirichlet(alpha * np.ones(num_sites))
         counts = (proportions * len(idx_c)).astype(int)
 
-        # rounding fix
         diff = len(idx_c) - counts.sum()
         if diff > 0:
             frac = proportions * len(idx_c) - counts
@@ -69,12 +74,29 @@ def split_and_save(
     seed: int = 0,
     data_root: str | None = None,
 ) -> str:
-    """Download FashionMNIST and save per-site train indices."""
     if alpha <= 0:
         raise ValueError("alpha must be > 0")
 
-    root = data_root or os.path.expanduser("~/.torch/data")
-    train = datasets.FashionMNIST(root=root, train=True, download=True)
+    root = data_root or DEFAULT_ROOT
+    train_dir = os.path.join(root, "train")
+    if not os.path.isdir(train_dir):
+        root_path = Path(root)
+        data_root_path = root_path.parent
+        data_root_path.mkdir(parents=True, exist_ok=True)
+        zip_path = data_root_path / "tiny-imagenet-200.zip"
+        if not zip_path.exists():
+            print(f"Downloading Tiny-ImageNet to {zip_path} ...")
+            urlretrieve(DEFAULT_URL, zip_path)
+        print(f"Extracting Tiny-ImageNet into {data_root_path} ...")
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall(data_root_path)
+        if not os.path.isdir(train_dir):
+            raise FileNotFoundError(
+                f"Tiny-ImageNet train dir not found after extraction: {train_dir}. "
+                "Please verify the dataset archive."
+            )
+
+    train = datasets.ImageFolder(root=train_dir)
     labels = np.array(train.targets, dtype=np.int64)
 
     train_idx_root = f"{split_dir_prefix}_alpha{alpha}_sites{num_sites}_seed{seed}"

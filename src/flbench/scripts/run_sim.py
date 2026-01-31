@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--lr", type=float, default=5e-2)
     p.add_argument("--num_workers", type=int, default=2)
     p.add_argument("--prox_mu", type=float, default=0.0, help="FedProx mu coefficient (only for fedprox).")
+    p.add_argument(
+        "--data_root",
+        type=str,
+        default=None,
+        help="Dataset root (task-dependent). Passed to task split/dataset loaders.",
+    )
 
     # Non-iid split knobs (task-dependent; CIFAR-10 uses alpha)
     p.add_argument("--alpha", type=float, default=0.5, help="Dirichlet alpha (for non-iid splits).")

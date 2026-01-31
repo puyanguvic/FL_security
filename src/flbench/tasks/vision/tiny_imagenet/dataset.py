@@ -1,29 +1,64 @@
 from __future__ import annotations
 
 import os
+import zipfile
+from pathlib import Path
+from urllib.request import urlretrieve
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
+DEFAULT_ROOT = os.path.expanduser("~/.torch/data/tiny-imagenet-200")
+DEFAULT_URL = "http://cs231n.stanford.edu/tiny-imagenet-200.zip"
+
+
+def _ensure_tiny_imagenet(root: str) -> None:
+    train_dir = _train_dir(root)
+    if os.path.isdir(train_dir):
+        return
+
+    root_path = Path(root)
+    data_root = root_path.parent
+    data_root.mkdir(parents=True, exist_ok=True)
+    zip_path = data_root / "tiny-imagenet-200.zip"
+
+    if not zip_path.exists():
+        print(f"Downloading Tiny-ImageNet to {zip_path} ...")
+        urlretrieve(DEFAULT_URL, zip_path)
+
+    print(f"Extracting Tiny-ImageNet into {data_root} ...")
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(data_root)
+
+    if not os.path.isdir(train_dir):
+        raise FileNotFoundError(
+            f"Tiny-ImageNet train dir not found after extraction: {train_dir}. "
+            "Please verify the dataset archive."
+        )
+
 
 def _default_transforms():
     train_tf = transforms.Compose(
         [
-            transforms.RandomCrop(28, padding=4),
+            transforms.RandomCrop(64, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize((0.2860,), (0.3530,)),
+            transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
         ]
     )
     test_tf = transforms.Compose(
         [
             transforms.ToTensor(),
-            transforms.Normalize((0.2860,), (0.3530,)),
+            transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2302, 0.2265, 0.2262)),
         ]
     )
     return train_tf, test_tf
+
+
+def _train_dir(root: str) -> str:
+    return os.path.join(root, "train")
 
 
 def create_datasets(
@@ -33,14 +68,13 @@ def create_datasets(
     seed: int = 0,
     data_root: str | None = None,
 ):
+    root = data_root or DEFAULT_ROOT
+    _ensure_tiny_imagenet(root)
+    train_dir = _train_dir(root)
+
     train_tf, test_tf = _default_transforms()
-    root = data_root or os.path.expanduser("~/.torch/data")
-    base_train = datasets.FashionMNIST(
-        root=root, train=True, download=True, transform=train_tf
-    )
-    base_train_noaug = datasets.FashionMNIST(
-        root=root, train=True, download=False, transform=test_tf
-    )
+    base_train = datasets.ImageFolder(root=train_dir, transform=train_tf)
+    base_train_noaug = datasets.ImageFolder(root=train_dir, transform=test_tf)
 
     idx_path = os.path.join(train_idx_root, site_name, "train_idx.npy")
     if not os.path.exists(idx_path):

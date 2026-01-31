@@ -28,4 +28,11 @@ def split_and_save(*, num_sites: int, split_dir_prefix: str, seed: int = 0, **kw
     alpha = kwargs.get("alpha", None)
     if alpha is None:
         raise ValueError("Missing split parameter: alpha")
-    return _split_and_save(num_sites=num_sites, alpha=float(alpha), split_dir_prefix=split_dir_prefix, seed=seed)
+    data_root = kwargs.get("data_root", None)
+    return _split_and_save(
+        num_sites=num_sites,
+        alpha=float(alpha),
+        split_dir_prefix=split_dir_prefix,
+        seed=seed,
+        data_root=data_root,
+    )

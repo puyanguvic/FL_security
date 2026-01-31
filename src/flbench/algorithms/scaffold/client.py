@@ -40,7 +40,7 @@ def main(args):
     print(f"Create datasets for site {site_name}")
 
     train_dataset, valid_dataset = task_spec.create_datasets(
-        site_name, train_idx_root=args.train_idx_root, seed=args.seed
+        site_name, train_idx_root=args.train_idx_root, seed=args.seed, data_root=args.data_root
     )
     train_loader, valid_loader = task_spec.create_data_loaders(
         train_dataset, valid_dataset, batch_size=args.batch_size, num_workers=args.num_workers
@@ -202,6 +202,7 @@ if __name__ == "__main__":
     p.add_argument("--num_workers", type=int, default=2, help="DataLoader workers")
     p.add_argument("--evaluate_local", action="store_true", help="Evaluate local model each epoch")
     p.add_argument("--seed", type=int, default=0, help="Random seed")
+    p.add_argument("--data_root", type=str, default=None, help="Dataset root (task-dependent)")
     args = p.parse_args()
 
     main(args)

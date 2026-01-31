@@ -62,12 +62,19 @@ def _dirichlet_split_indices(labels: np.ndarray, num_sites: int, alpha: float, s
     return out
 
 
-def split_and_save(num_sites: int, alpha: float, split_dir_prefix: str, seed: int = 0) -> str:
+def split_and_save(
+    num_sites: int,
+    alpha: float,
+    split_dir_prefix: str,
+    seed: int = 0,
+    data_root: str | None = None,
+) -> str:
     """Download CIFAR-10 and save per-site train indices."""
     if alpha <= 0:
         raise ValueError("alpha must be > 0")
 
-    train = datasets.CIFAR10(root=os.path.expanduser("~/.torch/data"), train=True, download=True)
+    root = data_root or os.path.expanduser("~/.torch/data")
+    train = datasets.CIFAR10(root=root, train=True, download=True)
     labels = np.array(train.targets, dtype=np.int64)
 
     train_idx_root = f"{split_dir_prefix}_alpha{alpha}_sites{num_sites}_seed{seed}"

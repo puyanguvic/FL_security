@@ -26,13 +26,20 @@ def _default_transforms():
     return train_tf, test_tf
 
 
-def create_datasets(site_name: str, train_idx_root: str, val_fraction: float = 0.1, seed: int = 0):
+def create_datasets(
+    site_name: str,
+    train_idx_root: str,
+    val_fraction: float = 0.1,
+    seed: int = 0,
+    data_root: str | None = None,
+):
     train_tf, test_tf = _default_transforms()
+    root = data_root or os.path.expanduser("~/.torch/data")
     base_train = datasets.CIFAR10(
-        root=os.path.expanduser("~/.torch/data"), train=True, download=True, transform=train_tf
+        root=root, train=True, download=True, transform=train_tf
     )
     base_train_noaug = datasets.CIFAR10(
-        root=os.path.expanduser("~/.torch/data"), train=True, download=False, transform=test_tf
+        root=root, train=True, download=False, transform=test_tf
     )
 
     idx_path = os.path.join(train_idx_root, site_name, "train_idx.npy")

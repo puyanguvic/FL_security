@@ -57,6 +57,7 @@ def _build_run_meta(args) -> dict:
         "batch_size": args.batch_size,
         "lr": args.lr,
         "seed": args.seed,
+        "data_root": getattr(args, "data_root", None),
     }
 
 
@@ -96,6 +97,7 @@ def run_scaffold(args) -> None:
         split_dir_prefix=os.path.join(split_root, "dirichlet"),
         seed=args.seed,
         alpha=alpha,
+        data_root=getattr(args, "data_root", None),
     )
 
     train_script = os.path.join(os.path.dirname(__file__), "client.py")
@@ -109,6 +111,8 @@ def run_scaffold(args) -> None:
         f"--aggregation_epochs {aggregation_epochs} "
         f"--seed {args.seed}"
     )
+    if getattr(args, "data_root", None):
+        train_args = f"{train_args} --data_root {args.data_root}"
 
     initial_model = ScaffoldModel(task_spec.build_model(args.model))
     recipe = FedAvgRecipe(

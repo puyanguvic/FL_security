@@ -63,8 +63,10 @@ def _register_builtin() -> None:
     from flbench.algorithms.fedavg.job import run_fedavg
     from flbench.algorithms.fedprox.job import run_fedprox
     from flbench.algorithms.scaffold.job import run_scaffold
+    from flbench.tasks.sensor.har import task as har_task
     from flbench.tasks.vision.cifar10 import task as cifar10_task
     from flbench.tasks.vision.fashionmnist import task as fashion_task
+    from flbench.tasks.vision.tiny_imagenet import task as tiny_task
 
     register_algo(AlgoSpec(name="fedavg", run=run_fedavg))
     register_algo(AlgoSpec(name="fedprox", run=run_fedprox))
@@ -89,6 +91,28 @@ def _register_builtin() -> None:
             create_data_loaders=fashion_task.create_data_loaders,
             default_split_root=fashion_task.default_split_root,
             default_model=fashion_task.default_model,
+        )
+    )
+    register_task(
+        TaskSpec(
+            name="vision/tiny_imagenet",
+            build_model=tiny_task.build_model,
+            split_and_save=tiny_task.split_and_save,
+            create_datasets=tiny_task.create_datasets,
+            create_data_loaders=tiny_task.create_data_loaders,
+            default_split_root=tiny_task.default_split_root,
+            default_model=tiny_task.default_model,
+        )
+    )
+    register_task(
+        TaskSpec(
+            name="sensor/har",
+            build_model=har_task.build_model,
+            split_and_save=har_task.split_and_save,
+            create_datasets=har_task.create_datasets,
+            create_data_loaders=har_task.create_data_loaders,
+            default_split_root=har_task.default_split_root,
+            default_model=har_task.default_model,
         )
     )
 

@@ -10,6 +10,8 @@ This repo currently includes:
 - `algo=fedavg`
 - `task=vision/cifar10`
 - `task=vision/fashionmnist`
+- `task=vision/tiny_imagenet`
+- `task=sensor/har`
 - `model=cnn/moderate`
 
 ## Quickstart (uv)
