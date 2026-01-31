@@ -29,6 +29,16 @@ def _aggregate_scalars(site_dirs: List[Path], tag: str) -> Dict[int, List[float]
     return values_by_round
 
 
+def _collect_site_epoch_rows(site_dir: Path, tags: List[str]) -> Dict[int, Dict[str, float]]:
+    rows: Dict[int, Dict[str, float]] = {}
+    for tag in tags:
+        for scalar in _load_scalar_events(site_dir, tag):
+            epoch = int(scalar.step)
+            row = rows.setdefault(epoch, {"epoch": epoch})
+            row[tag] = float(scalar.value)
+    return rows
+
+
 def _resolve_tb_root(run_root: Path) -> Path | None:
     candidates = [
         run_root / "tb_events",
@@ -185,3 +195,75 @@ def write_global_metrics_csv(
         return None
 
     return round_path, summary_path
+
+
+def write_client_metrics_csv(
+    run_result: str | Path,
+    metrics_dirname: str = "metrics/clients",
+    per_site_filename: str = "client_epoch_metrics.csv",
+    combined_filename: str = "all_sites_epoch_metrics.csv",
+) -> Tuple[Path, List[Path]] | None:
+    run_root = Path(run_result)
+    tb_root = _resolve_tb_root(run_root)
+    if tb_root is None:
+        return None
+
+    site_dirs = sorted(p for p in tb_root.iterdir() if p.is_dir() and p.name.startswith("site-"))
+    if not site_dirs:
+        return None
+
+    metrics_dir = tb_root.parent / metrics_dirname
+    try:
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+
+    tags = [
+        "train_loss",
+        "train_acc",
+        "val_loss_local_model",
+        "val_acc_local_model",
+    ]
+
+    per_site_paths: List[Path] = []
+    combined_path = metrics_dir / combined_filename
+    try:
+        with open(combined_path, "w", encoding="utf-8", newline="") as f_combined:
+            combined_writer = csv.DictWriter(
+                f_combined,
+                fieldnames=["site", "epoch", "train_loss", "train_acc", "val_loss", "val_acc"],
+            )
+            combined_writer.writeheader()
+
+            for site_dir in site_dirs:
+                site_name = site_dir.name
+                rows = _collect_site_epoch_rows(site_dir, tags)
+                if not rows:
+                    continue
+
+                site_metrics_dir = metrics_dir / site_name
+                site_metrics_dir.mkdir(parents=True, exist_ok=True)
+                site_path = site_metrics_dir / per_site_filename
+                per_site_paths.append(site_path)
+
+                with open(site_path, "w", encoding="utf-8", newline="") as f_site:
+                    site_writer = csv.DictWriter(
+                        f_site,
+                        fieldnames=["epoch", "train_loss", "train_acc", "val_loss", "val_acc"],
+                    )
+                    site_writer.writeheader()
+                    for epoch in sorted(rows.keys()):
+                        row = rows[epoch]
+                        out = {
+                            "epoch": epoch,
+                            "train_loss": row.get("train_loss"),
+                            "train_acc": row.get("train_acc"),
+                            "val_loss": row.get("val_loss_local_model"),
+                            "val_acc": row.get("val_acc_local_model"),
+                        }
+                        site_writer.writerow(out)
+                        combined_writer.writerow({"site": site_name, **out})
+    except OSError:
+        return None
+
+    return combined_path, per_site_paths

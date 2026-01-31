@@ -12,7 +12,7 @@ from nvflare.apis.fl_constant import FLMetaKey
 from nvflare.app_common.abstract.fl_model import ParamsType
 from nvflare.client.tracking import SummaryWriter
 
-from flbench.utils.torch_utils import compute_model_diff, evaluate, evaluate_with_loss, get_lr_values, set_seed
+from flbench.utils.torch_utils import compute_model_diff, evaluate_with_loss, get_lr_values, set_seed
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
@@ -99,6 +99,8 @@ def main(args):
         for epoch in range(args.aggregation_epochs):
             model.train()
             running_loss = 0.0
+            running_correct = 0
+            running_total = 0
             for data in train_loader:
                 inputs, labels = data[0].to(DEVICE), data[1].to(DEVICE)
 
@@ -110,14 +112,19 @@ def main(args):
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
+                preds = outputs.argmax(dim=1)
+                running_correct += (preds == labels).sum().item()
+                running_total += labels.numel()
 
             avg_loss = running_loss / max(1, len(train_loader))
+            train_acc = float(running_correct) / float(running_total) if running_total > 0 else 0.0
             global_epoch = input_model.current_round * args.aggregation_epochs + epoch
             curr_lr = get_lr_values(optimizer)[0]
 
             summary_writer.add_scalar("global_round", input_model.current_round, global_epoch)
             summary_writer.add_scalar("global_epoch", global_epoch, global_epoch)
             summary_writer.add_scalar("train_loss", avg_loss, global_epoch)
+            summary_writer.add_scalar("train_acc", train_acc, global_epoch)
             summary_writer.add_scalar("learning_rate", curr_lr, global_epoch)
 
             print(
@@ -125,10 +132,15 @@ def main(args):
                 f"- Loss: {avg_loss:.4f} - LR: {curr_lr:.6f}"
             )
 
+            val_loss_local_model, val_acc_local_model = evaluate_with_loss(model, valid_loader, criterion)
+            summary_writer.add_scalar("val_acc_local_model", val_acc_local_model, global_epoch)
+            summary_writer.add_scalar("val_loss_local_model", val_loss_local_model, global_epoch)
             if args.evaluate_local:
-                val_acc_local_model = evaluate(model, valid_loader)
-                print(f"Local model accuracy on validation set: {100 * val_acc_local_model:.2f}%")
-                summary_writer.add_scalar("val_acc_local_model", val_acc_local_model, global_epoch)
+                print(
+                    "Local model validation - "
+                    f"acc: {100 * val_acc_local_model:.2f}% "
+                    f"loss: {val_loss_local_model:.4f}"
+                )
 
             if scheduler is not None:
                 scheduler.step()

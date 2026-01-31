@@ -14,7 +14,7 @@ from nvflare.app_opt.pt.recipes.fedavg import FedAvgRecipe
 from nvflare.recipe import SimEnv, add_experiment_tracking
 
 from flbench.algorithms.scaffold.model import ScaffoldModel
-from flbench.utils.results_utils import write_global_metrics_csv, write_global_metrics_summary
+from flbench.utils.results_utils import write_client_metrics_csv, write_global_metrics_csv, write_global_metrics_summary
 
 logging.getLogger("nvflare").setLevel(logging.ERROR)
 
@@ -166,6 +166,9 @@ def run_scaffold(args) -> None:
     if metrics_paths is not None:
         print("Global metrics CSV saved to:", str(metrics_paths[0]))
         print("Global metrics summary CSV saved to:", str(metrics_paths[1]))
+    client_metrics = write_client_metrics_csv(run_result)
+    if client_metrics is not None:
+        print("Client metrics CSV saved to:", str(client_metrics[0]))
     metrics_path = write_global_metrics_summary(run_result)
     if metrics_path is not None:
         print("Global metrics JSON saved to:", str(metrics_path))
