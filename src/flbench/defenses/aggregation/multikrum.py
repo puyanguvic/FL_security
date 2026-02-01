@@ -1,7 +1,7 @@
 
-from defenses.base import ByzantineDefense
-from utils.model_averaging import average_weights
-from utils.federated_metrics import calculate_gradients, calculate_l2_norm
+from ..base import ByzantineDefense
+from ...utils.model_averaging import average_weights
+from ...utils.federated_metrics import calculate_gradients, calculate_l2_norm
 import numpy as np
 
 class MultiKrumDefense(ByzantineDefense):

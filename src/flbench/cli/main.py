@@ -67,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--tracking", type=str, default="tensorboard", choices=["tensorboard", "none"])
 
     # Client-side update attacks
-    attack_choices = ["none"] + list_attacks()
+    attack_choices = ["none"] + list(list_attacks())
     p.add_argument(
         "--attack",
         type=str,
@@ -114,7 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--attack_seed", type=int, default=None, help="Optional seed for stochastic attacks")
 
     # Server-side defenses
-    defense_choices = ["none"] + list_defenses()
+    defense_choices = ["none"] + list(list_defenses())
     p.add_argument(
         "--defense",
         type=str,

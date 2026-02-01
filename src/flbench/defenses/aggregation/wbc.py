@@ -1,6 +1,6 @@
 
-from defenses.base import ByzantineDefense
-from defenses.detection.wbc_core import wbc
+from ..base import ByzantineDefense
+from ..detection.wbc_core import wbc
 
 class WBCDefense(ByzantineDefense):
     def __init__(self, lr: float, device=None):

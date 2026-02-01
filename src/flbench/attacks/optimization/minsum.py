@@ -1,6 +1,6 @@
 
-from attacks.base import ByzantineAttack
-from utils.federated_metrics import calculate_gradients, average_gradients, calculate_l2_norm, distance
+from ..base import ByzantineAttack
+from ...utils.federated_metrics import calculate_gradients, average_gradients, calculate_l2_norm, distance
 
 class MinSumAttack(ByzantineAttack):
     def __init__(self, learning_rate):

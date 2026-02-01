@@ -1,6 +1,6 @@
 
 import copy, torch
-from attacks.base import ByzantineAttack
+from ..base import ByzantineAttack
 
 class GaussianAttack(ByzantineAttack):
     def __init__(self, attack_scale: float, device: torch.device):

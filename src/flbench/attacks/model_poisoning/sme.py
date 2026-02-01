@@ -1,8 +1,8 @@
 
 import copy
-from attacks.base import ByzantineAttack
-from attacks.utils import get_malicious_client_updates
-from utils.federated_metrics import calculate_gradients, average_gradients
+from ..base import ByzantineAttack
+from ..utils import get_malicious_client_updates
+from ...utils.federated_metrics import calculate_gradients, average_gradients
 
 class SMEAttack(ByzantineAttack):
     def __init__(self, learning_rate, surrogate_scale=1.0, attacker_ability="Full"):

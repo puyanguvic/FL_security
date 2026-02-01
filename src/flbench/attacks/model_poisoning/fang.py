@@ -1,6 +1,6 @@
 
 import copy, torch
-from attacks.base import ByzantineAttack
+from ..base import ByzantineAttack
 
 class FangAttack(ByzantineAttack):
     def attack(self, client_updates, global_weights, all_client_indices, malicious_client_indices, **kwargs):

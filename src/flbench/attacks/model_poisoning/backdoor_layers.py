@@ -1,8 +1,8 @@
 
 import copy
-from attacks.base import ByzantineAttack
-from attacks.utils import get_malicious_client_updates
-from utils.model_averaging import average_weights
+from ..base import ByzantineAttack
+from ..utils import get_malicious_client_updates
+from ...utils.model_averaging import average_weights
 
 class BackdoorCriticalLayerAttack(ByzantineAttack):
     def __init__(self, critical_layer_names, poison_scale=1.0, attacker_ability="Part"):

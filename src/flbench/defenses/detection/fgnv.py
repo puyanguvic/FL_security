@@ -1,6 +1,6 @@
 
-from defenses.base import ByzantineDefense
-from utils.federated_metrics import calculate_gradients
+from ..base import ByzantineDefense
+from ...utils.federated_metrics import calculate_gradients
 import torch, numpy as np
 
 class FGNVDefense(ByzantineDefense):

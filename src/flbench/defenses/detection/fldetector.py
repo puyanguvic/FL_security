@@ -1,5 +1,5 @@
 
-from defenses.base import ByzantineDefense
+from ..base import ByzantineDefense
 
 class FLDetectorDefense(ByzantineDefense):
     def __init__(self, detector):

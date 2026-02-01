@@ -1,8 +1,8 @@
 
 import copy
 from scipy.stats import norm
-from attacks.base import ByzantineAttack
-from utils.federated_metrics import average_gradients, calculate_gradient_std_dev
+from ..base import ByzantineAttack
+from ...utils.federated_metrics import average_gradients, calculate_gradient_std_dev
 
 class LIEAttack(ByzantineAttack):
     def attack(self, client_updates, global_weights, all_client_indices, malicious_client_indices, **kwargs):

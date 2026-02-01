@@ -1,5 +1,5 @@
 
-from defenses.base import ByzantineDefense
+from ..base import ByzantineDefense
 from typing import List
 import numpy as np
 
