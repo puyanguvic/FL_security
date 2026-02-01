@@ -1,26 +1,16 @@
-from __future__ import annotations
 
-from flbench.defenses.base import Defense, DefenseContext
-from flbench.defenses.registry import (
-    build_defense,
-    build_defense_from_args,
-    get_defense,
-    list_defenses,
-    register_defense,
-)
+from defenses.aggregation.mean import MeanDefense
+from defenses.aggregation.multikrum import MultiKrumDefense
+from defenses.aggregation.wbc import WBCDefense
+from defenses.detection.fgnv import FGNVDefense
+from defenses.detection.fldetector import FLDetectorDefense
+from defenses.reputation.beta import BetaReputationDefense
 
-# Register built-in defenses
-from . import krum as _krum  # noqa: F401
-from . import median as _median  # noqa: F401
-from . import norm_clip as _norm_clip  # noqa: F401
-from . import trimmed_mean as _trimmed_mean  # noqa: F401
-
-__all__ = [
-    "Defense",
-    "DefenseContext",
-    "build_defense",
-    "build_defense_from_args",
-    "get_defense",
-    "list_defenses",
-    "register_defense",
-]
+DEFENSE_REGISTRY = {
+    "mean": MeanDefense,
+    "multikrum": MultiKrumDefense,
+    "wbc": WBCDefense,
+    "fgnv": FGNVDefense,
+    "fldetector": FLDetectorDefense,
+    "beta_reputation": BetaReputationDefense,
+}
