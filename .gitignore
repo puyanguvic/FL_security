@@ -1,128 +1,54 @@
-# =========================
-# Python / Bytecode
-# =========================
+# --- Python ---
 __pycache__/
 *.py[cod]
-*$py.class
-
-# =========================
-# Virtual environments
-# =========================
-.venv/
-venv/
-env/
-ENV/
-
-# =========================
-# Packaging / build
-# =========================
-build/
-dist/
+*.pyd
+*.so
 *.egg-info/
 .eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# =========================
-# uv / pip
-# =========================
-uv.lock
-pip-wheel-metadata/
+# --- Virtual envs / uv ---
+.venv/
+.python-version
 
-# =========================
-# Jupyter
-# =========================
+# --- Jupyter ---
 .ipynb_checkpoints/
 
-# =========================
-# Logs / temp files
-# =========================
-*.log
-*.tmp
-*.swp
-*.swo
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 
-# =========================
-# Experiment outputs
-# =========================
-# Canonical experiment root (keep docs)
-experiments/**
-!experiments/README.md
-
-# Legacy outputs (kept for backwards compatibility)
-results/
-
-# =========================
-# NVFLARE runtime artifacts
-# =========================
-/tmp/
-nvflare_workspace/
-nvflare_simulation/
-**/simulation/
-**/run_*/
-
-# Common NVFLARE default locations
-/tmp/nvflare/
-/tmp/flbench_splits/
-
-# =========================
-# TensorBoard
-# =========================
-runs/
-tensorboard/
-**/events.out.tfevents.*
-
-# =========================
-# Data / Datasets (IMPORTANT)
-# =========================
-data/
-dataset/
+# --- Data & splits ---
 datasets/
-models/
-raw_data/
-processed_data/
+# If you want a local raw-data folder, keep it out of git by putting it under ./datasets/
+/tmp/
+**/cifar10_splits/
+**/flbench_splits/
 
-# common ML artifacts
-*.npy
-*.npz
+# --- Experiment artifacts ---
+experiments/
+results/
+runs/
 *.pt
 *.pth
 *.ckpt
-*.h5
-*.pkl
+*.onnx
 
-# =========================
-# OS / Editor
-# =========================
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+# --- NVFlare simulation default outputs (if any leak into repo) ---
+/nvflare_workspace/
+/workspace/
 
-# =========================
-# Coverage / test
-# =========================
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-.hypothesis/
-.tox/
-.nox/
-
-# =========================
-# Typecheck / lint caches
-# =========================
-.mypy_cache/
-.ruff_cache/
-.cache/
-
-# =========================
-# PEP 582 / local python
-# =========================
-__pypackages__/
-.python-version
-
-# =========================
-# Secrets
-# =========================
-.env
-.env.*
+# --- Logs ---
+*.log
+log*.txt
+log*.json
+tensorboard/
+tb_events/

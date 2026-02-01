@@ -82,6 +82,18 @@ if __name__ == "__main__":
         default="none",
         help="Attack name (e.g., sign_flip, scale, gaussian, pgd_minmax)",
     )
+    p.add_argument(
+        "--attack_kv",
+        action="append",
+        default=[],
+        help="Attack params as key=value (repeatable). Example: --attack_kv eps=5.0 --attack_kv steps=3",
+    )
+    p.add_argument(
+        "--attack_config",
+        type=str,
+        default=None,
+        help="Path to YAML/JSON file providing attack params (can be combined with --attack_kv overrides)",
+    )
     p.add_argument("--attack_scale", type=float, default=1.0, help="Scale factor for scale attack")
     p.add_argument("--attack_noise_std", type=float, default=0.0, help="Gaussian noise std factor (relative)")
     p.add_argument("--attack_pgd_steps", type=int, default=1, help="PGD steps for pgd_minmax")

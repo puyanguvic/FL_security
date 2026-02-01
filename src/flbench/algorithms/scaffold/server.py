@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 
 from nvflare.apis.dxo import DataKind
-from nvflare.app_common.aggregators import InTimeAccumulateWeightedAggregator
 from nvflare.app_opt.pt.recipes.fedavg import FedAvgRecipe
 from nvflare.recipe import SimEnv, add_experiment_tracking
 
 from flbench.algorithms.scaffold.model import ScaffoldModel
+from flbench.core.aggregation import build_nvflare_aggregator
 from flbench.core.server_base import BaseServer
-from flbench.defenses import build_defense_from_args
-from flbench.defenses.aggregator import DefenseAggregator
 from flbench.utils.results_utils import write_client_metrics_csv, write_global_metrics_csv, write_global_metrics_summary
 
 logging.getLogger("nvflare").setLevel(logging.ERROR)
@@ -34,20 +33,12 @@ class ScaffoldServer(BaseServer):
             "seed": self.args.seed,
             "data_root": getattr(self.args, "data_root", None),
             "attack": getattr(self.args, "attack", "none"),
-            "attack_scale": getattr(self.args, "attack_scale", None),
-            "attack_noise_std": getattr(self.args, "attack_noise_std", None),
-            "attack_pgd_steps": getattr(self.args, "attack_pgd_steps", None),
-            "attack_pgd_step_size": getattr(self.args, "attack_pgd_step_size", None),
-            "attack_pgd_eps": getattr(self.args, "attack_pgd_eps", None),
-            "attack_pgd_eps_factor": getattr(self.args, "attack_pgd_eps_factor", None),
-            "attack_pgd_max_batches": getattr(self.args, "attack_pgd_max_batches", None),
-            "attack_pgd_init": getattr(self.args, "attack_pgd_init", None),
+            "attack_kv": getattr(self.args, "attack_kv", None),
+            "attack_config": getattr(self.args, "attack_config", None),
             "attack_seed": getattr(self.args, "attack_seed", None),
             "defense": getattr(self.args, "defense", "none"),
-            "defense_trim_ratio": getattr(self.args, "defense_trim_ratio", None),
-            "defense_clip_norm": getattr(self.args, "defense_clip_norm", None),
-            "defense_krum_f": getattr(self.args, "defense_krum_f", None),
-            "defense_krum_m": getattr(self.args, "defense_krum_m", None),
+            "defense_kv": getattr(self.args, "defense_kv", None),
+            "defense_config": getattr(self.args, "defense_config", None),
         }
 
     def run(self) -> None:
@@ -104,18 +95,12 @@ class ScaffoldServer(BaseServer):
         )
         if getattr(self.args, "malicious_seed", None) is not None:
             train_args = f"{train_args} --malicious_seed {self.args.malicious_seed}"
-        train_args = (
-            f"{train_args} "
-            f"--attack {self.args.attack} "
-            f"--attack_scale {self.args.attack_scale} "
-            f"--attack_noise_std {self.args.attack_noise_std} "
-            f"--attack_pgd_steps {self.args.attack_pgd_steps} "
-            f"--attack_pgd_step_size {self.args.attack_pgd_step_size} "
-            f"--attack_pgd_eps {self.args.attack_pgd_eps} "
-            f"--attack_pgd_eps_factor {self.args.attack_pgd_eps_factor} "
-            f"--attack_pgd_max_batches {self.args.attack_pgd_max_batches} "
-            f"--attack_pgd_init {self.args.attack_pgd_init}"
-        )
+        # Attack plumbing: pass generic params so new attacks do not require touching any algorithm code.
+        train_args = f"{train_args} --attack {self.args.attack}"
+        for kv in (getattr(self.args, "attack_kv", None) or []):
+            train_args = f"{train_args} --attack_kv {shlex.quote(str(kv))}"
+        if getattr(self.args, "attack_config", None):
+            train_args = f"{train_args} --attack_config {shlex.quote(str(self.args.attack_config))}"
         if getattr(self.args, "tracking", None) is not None:
             train_args = f"{train_args} --tracking {self.args.tracking}"
         if getattr(self.args, "data_root", None):
@@ -123,22 +108,7 @@ class ScaffoldServer(BaseServer):
         if getattr(self.args, "attack_seed", None) is not None:
             train_args = f"{train_args} --attack_seed {self.args.attack_seed}"
 
-        defense = build_defense_from_args(self.args)
-        aggregation_weights = {f"site-{i}": 1.0 for i in range(1, n_clients + 1)}
-        if defense is None:
-            aggregator = InTimeAccumulateWeightedAggregator(
-                expected_data_kind=DataKind.WEIGHT_DIFF,
-                # Avoid repeated NVFLARE warnings about missing per-site "Aggregation_weight".
-                # Actual SCAFFOLD weighting is driven by MetaKey.NUM_STEPS_CURRENT_ROUND sent by clients.
-                aggregation_weights=aggregation_weights,
-            )
-        else:
-            aggregator = DefenseAggregator(
-                defense=defense,
-                expected_data_kind=DataKind.WEIGHT_DIFF,
-                aggregation_weights=aggregation_weights,
-                weigh_by_local_iter=True,
-            )
+        aggregator = build_nvflare_aggregator(args=self.args, n_clients=n_clients, expected_data_kind=DataKind.WEIGHT_DIFF)
 
         initial_model = ScaffoldModel(task_spec.build_model(self.args.model))
         recipe = FedAvgRecipe(

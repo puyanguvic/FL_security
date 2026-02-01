@@ -55,14 +55,25 @@ def build_defense_from_args(args):
     if key not in _DEFENSES:
         raise ValueError(f"Unknown defense '{name}'. Available: {', '.join(list_defenses())}")
 
-    if key == "trimmed_mean":
-        return _DEFENSES[key](trim_ratio=getattr(args, "defense_trim_ratio", 0.0))
-    if key == "norm_clip":
-        return _DEFENSES[key](clip_norm=getattr(args, "defense_clip_norm", 0.0))
-    if key in {"krum", "multi_krum"}:
-        return _DEFENSES[key](
-            f=getattr(args, "defense_krum_f", None),
-            m=getattr(args, "defense_krum_m", 1),
-            n_malicious=getattr(args, "n_malicious", 0),
-        )
-    return _DEFENSES[key]()
+    # New (recommended): pass defense params via --defense_config (YAML/JSON) and/or repeated --defense_kv k=v.
+    from flbench.utils.cli_kv import merge_kv_and_file
+
+    kwargs = merge_kv_and_file(
+        kv=getattr(args, "defense_kv", None),
+        config_path=getattr(args, "defense_config", None),
+    )
+
+    # Backward-compatible legacy flags (only used if no config/kv provided).
+    if not kwargs:
+        if key == "trimmed_mean":
+            kwargs = {"trim_ratio": getattr(args, "defense_trim_ratio", 0.0)}
+        elif key == "norm_clip":
+            kwargs = {"clip_norm": getattr(args, "defense_clip_norm", 0.0)}
+        elif key in {"krum", "multi_krum"}:
+            kwargs = {
+                "f": getattr(args, "defense_krum_f", None),
+                "m": getattr(args, "defense_krum_m", 1),
+                "n_malicious": getattr(args, "n_malicious", 0),
+            }
+
+    return _DEFENSES[key](**kwargs)

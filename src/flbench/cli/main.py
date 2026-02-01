@@ -75,6 +75,18 @@ def build_parser() -> argparse.ArgumentParser:
         choices=attack_choices,
         help=f"Client update attack. Available: {', '.join(attack_choices)}",
     )
+    p.add_argument(
+        "--attack_kv",
+        action="append",
+        default=[],
+        help="Attack params as key=value (repeatable). Example: --attack_kv eps=5.0 --attack_kv steps=3",
+    )
+    p.add_argument(
+        "--attack_config",
+        type=str,
+        default=None,
+        help="Path to YAML/JSON file providing attack params (can be combined with --attack_kv overrides)",
+    )
     p.add_argument("--attack_scale", type=float, default=1.0, help="Scale factor for scale attack")
     p.add_argument("--attack_noise_std", type=float, default=0.0, help="Gaussian noise std factor (relative)")
     p.add_argument("--attack_pgd_steps", type=int, default=1, help="PGD steps for pgd_minmax")
@@ -109,6 +121,18 @@ def build_parser() -> argparse.ArgumentParser:
         default="none",
         choices=defense_choices,
         help=f"Server defense. Available: {', '.join(defense_choices)}",
+    )
+    p.add_argument(
+        "--defense_kv",
+        action="append",
+        default=[],
+        help="Defense params as key=value (repeatable). Example: --defense_kv trim_ratio=0.2",
+    )
+    p.add_argument(
+        "--defense_config",
+        type=str,
+        default=None,
+        help="Path to YAML/JSON file providing defense params (can be combined with --defense_kv overrides)",
     )
     p.add_argument("--defense_trim_ratio", type=float, default=0.0, help="Trim ratio for trimmed_mean defense")
     p.add_argument("--defense_clip_norm", type=float, default=0.0, help="Clip norm for norm_clip defense")

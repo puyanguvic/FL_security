@@ -55,17 +55,29 @@ def build_attack_from_args(args):
     if key not in _ATTACKS:
         raise ValueError(f"Unknown attack '{name}'. Available: {', '.join(list_attacks())}")
 
-    if key == "scale":
-        return _ATTACKS[key](factor=getattr(args, "attack_scale", 1.0))
-    if key == "gaussian":
-        return _ATTACKS[key](sigma=getattr(args, "attack_noise_std", 0.0))
-    if key == "pgd_minmax":
-        return _ATTACKS[key](
-            steps=getattr(args, "attack_pgd_steps", 1),
-            step_size=getattr(args, "attack_pgd_step_size", 0.1),
-            eps=getattr(args, "attack_pgd_eps", 0.0),
-            eps_factor=getattr(args, "attack_pgd_eps_factor", 1.0),
-            max_batches=getattr(args, "attack_pgd_max_batches", 1),
-            init=getattr(args, "attack_pgd_init", "zero"),
-        )
-    return _ATTACKS[key]()
+    # New (recommended): pass attack params via --attack_config (YAML/JSON) and/or repeated --attack_kv k=v.
+    # This makes adding new attacks NOT require touching any algorithm/client argparse.
+    from flbench.utils.cli_kv import merge_kv_and_file
+
+    kwargs = merge_kv_and_file(
+        kv=getattr(args, "attack_kv", None),
+        config_path=getattr(args, "attack_config", None),
+    )
+
+    # Backward-compatible legacy flags (only used if no config/kv provided).
+    if not kwargs:
+        if key == "scale":
+            kwargs = {"factor": getattr(args, "attack_scale", 1.0)}
+        elif key == "gaussian":
+            kwargs = {"sigma": getattr(args, "attack_noise_std", 0.0)}
+        elif key == "pgd_minmax":
+            kwargs = {
+                "steps": getattr(args, "attack_pgd_steps", 1),
+                "step_size": getattr(args, "attack_pgd_step_size", 0.1),
+                "eps": getattr(args, "attack_pgd_eps", 0.0),
+                "eps_factor": getattr(args, "attack_pgd_eps_factor", 1.0),
+                "max_batches": getattr(args, "attack_pgd_max_batches", 1),
+                "init": getattr(args, "attack_pgd_init", "zero"),
+            }
+
+    return _ATTACKS[key](**kwargs)
