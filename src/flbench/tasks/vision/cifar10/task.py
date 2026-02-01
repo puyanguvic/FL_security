@@ -5,7 +5,7 @@ from flbench.models.vision import AlexNetSmall, VGG11Small
 from flbench.tasks.vision.cifar10 import dataset as _dataset
 from flbench.tasks.vision.cifar10.split import split_and_save as _split_and_save
 
-default_split_root = "/tmp/flbench_splits/cifar10"
+default_split_root = "experiments/splits/cifar10"
 default_model = "cnn/moderate"
 
 create_datasets = _dataset.create_datasets

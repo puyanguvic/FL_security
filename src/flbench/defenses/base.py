@@ -33,7 +33,7 @@ def weighted_mean(updates: List[Diff], weights: List[float]) -> Diff:
         total_weight = float(len(updates))
 
     out: Diff = {}
-    for update, w in zip(updates, weights):
+    for update, w in zip(updates, weights, strict=False):
         for k, v in update.items():
             if not torch.is_tensor(v):
                 v = torch.tensor(v)

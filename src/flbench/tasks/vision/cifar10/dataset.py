@@ -35,12 +35,8 @@ def create_datasets(
 ):
     train_tf, test_tf = _default_transforms()
     root = data_root or os.path.expanduser("~/.torch/data")
-    base_train = datasets.CIFAR10(
-        root=root, train=True, download=True, transform=train_tf
-    )
-    base_train_noaug = datasets.CIFAR10(
-        root=root, train=True, download=False, transform=test_tf
-    )
+    base_train = datasets.CIFAR10(root=root, train=True, download=True, transform=train_tf)
+    base_train_noaug = datasets.CIFAR10(root=root, train=True, download=False, transform=test_tf)
 
     idx_path = os.path.join(train_idx_root, site_name, "train_idx.npy")
     if not os.path.exists(idx_path):

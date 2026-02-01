@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import torch
 from nvflare.apis.dxo import DXO, DataKind, MetaKey, from_shareable
@@ -9,6 +9,7 @@ from nvflare.apis.fl_constant import ReturnCode
 from nvflare.apis.fl_context import FLContext
 from nvflare.app_common.abstract.aggregator import Aggregator
 from nvflare.app_common.app_constant import AppConstants
+
 try:
     from nvflare.apis.shareable import Shareable
 except ImportError:  # pragma: no cover - fallback for older nvflare

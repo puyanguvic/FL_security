@@ -34,8 +34,7 @@ def _ensure_har_dataset(root: str) -> None:
 
     if not os.path.exists(x_path) or not os.path.exists(y_path):
         raise FileNotFoundError(
-            f"UCI HAR train files not found after extraction: {x_path} and {y_path}. "
-            "Please verify the dataset archive."
+            f"UCI HAR train files not found after extraction: {x_path} and {y_path}. Please verify the dataset archive."
         )
 
 

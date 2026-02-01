@@ -80,7 +80,7 @@ class PGDMinMaxAttack(Attack):
             loss.backward()
 
             with torch.no_grad():
-                for name, param in work_model.named_parameters():
+                for _name, param in work_model.named_parameters():
                     if param.grad is None:
                         continue
                     param.add_(param.grad, alpha=step_size)

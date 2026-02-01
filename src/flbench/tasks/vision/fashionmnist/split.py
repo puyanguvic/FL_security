@@ -44,7 +44,7 @@ def _dirichlet_split_indices(labels: np.ndarray, num_sites: int, alpha: float, s
             for j in np.argsort(-frac)[:diff]:
                 counts[j] += 1
         elif diff < 0:
-            for j in np.argsort(-counts)[: (-diff)]:
+            for j in np.argsort(-counts)[:(-diff)]:
                 if counts[j] > 0:
                     counts[j] -= 1
 
@@ -84,7 +84,7 @@ def split_and_save(
     site_idxs = _dirichlet_split_indices(labels, num_sites=num_sites, alpha=alpha, seed=seed)
 
     for i in range(num_sites):
-        site_name = f"site-{i+1}"
+        site_name = f"site-{i + 1}"
         os.makedirs(paths.site_dir(site_name), exist_ok=True)
         np.save(paths.site_train_idx(site_name), site_idxs[i])
 

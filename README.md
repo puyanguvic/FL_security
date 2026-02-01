@@ -57,8 +57,11 @@ flbench-run --algo fedavg --task vision/fashionmnist --model cnn/moderate --n_cl
 
 ## Where outputs go
 
-- Data split indices: `/tmp/flbench_splits/...`
-- NVFLARE run result path is printed at the end and copied to `./experiments/runs/<job_name>/` (override with `--results_dir`)
+All experiment artifacts live under `./experiments/` by default:
+
+- Data split indices: `./experiments/splits/...`
+- NVFLARE simulation workspace: `./experiments/nvflare/simulation` (override with `--sim_workspace_root`)
+- Copied run results: `./experiments/runs/<job_name>/` (override with `--results_dir`)
 - TensorBoard tracking is enabled by default (via recipe tracking)
 
 Export metrics from a run directory:

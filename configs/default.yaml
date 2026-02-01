@@ -14,3 +14,7 @@ seed: 0
 
 attack: none
 defense: none
+
+# Output locations (informational; CLI flags take precedence)
+results_dir: experiments/runs
+sim_workspace_root: experiments/nvflare/simulation

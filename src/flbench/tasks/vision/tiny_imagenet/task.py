@@ -5,7 +5,7 @@ from flbench.models.vision import AlexNetSmall, VGG11Small
 from flbench.tasks.vision.tiny_imagenet import dataset as _dataset
 from flbench.tasks.vision.tiny_imagenet.split import split_and_save as _split_and_save
 
-default_split_root = "/tmp/flbench_splits/tiny_imagenet"
+default_split_root = "experiments/splits/tiny_imagenet"
 DEFAULT_NUM_CLASSES = 200
 default_model = "cnn/moderate"
 

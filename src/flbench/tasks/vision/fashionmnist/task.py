@@ -5,7 +5,7 @@ from flbench.models.vision import AlexNetSmall, VGG11Small
 from flbench.tasks.vision.fashionmnist import dataset as _dataset
 from flbench.tasks.vision.fashionmnist.split import split_and_save as _split_and_save
 
-default_split_root = "/tmp/flbench_splits/fashionmnist"
+default_split_root = "experiments/splits/fashionmnist"
 default_model = "cnn/moderate"
 
 create_datasets = _dataset.create_datasets

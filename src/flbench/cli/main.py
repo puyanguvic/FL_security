@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 
 from flbench.attacks import list_attacks
-from flbench.defenses import list_defenses
 from flbench.core.registry import get_algo, list_algos, list_tasks
+from flbench.defenses import list_defenses
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -54,8 +54,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--sim_workspace_root",
         type=str,
-        default="/tmp/nvflare/simulation",
-        help="NVFLARE simulation workspace root (default: /tmp/nvflare/simulation).",
+        default="experiments/nvflare/simulation",
+        help="NVFLARE simulation workspace root (default: ./experiments/nvflare/simulation).",
     )
     p.add_argument(
         "--resume",

@@ -161,151 +161,165 @@ class BaseClient:
 
     def run(self):
         flare.init()
-        try:
-            self.summary_writer = SummaryWriter()
-        except RuntimeError:
+        tracking = str(getattr(self.args, "tracking", "tensorboard")).lower()
+        if tracking == "none":
             self.summary_writer = _NullSummaryWriter()
-        self.site_name = flare.get_site_name()
-        print(f"Create datasets for site {self.site_name}")
+        else:
+            try:
+                self.summary_writer = SummaryWriter()
+            except RuntimeError:
+                self.summary_writer = _NullSummaryWriter()
+        try:
+            self.site_name = flare.get_site_name()
+            print(f"Create datasets for site {self.site_name}")
 
-        train_dataset, valid_dataset = self.task_spec.create_datasets(
-            self.site_name, train_idx_root=self.args.train_idx_root, seed=self.args.seed, data_root=self.args.data_root
-        )
-        self.train_loader, self.valid_loader = self.task_spec.create_data_loaders(
-            train_dataset, valid_dataset, batch_size=self.args.batch_size, num_workers=self.args.num_workers
-        )
-
-        self._init_attack()
-
-        while flare.is_running():
-            input_model = flare.receive()
-            print(f"\\n[Current Round={input_model.current_round}, Site={self.site_name}]\\n")
-
-            self._init_scheduler(input_model)
-            self._load_global_model(input_model)
-
-            global_model = copy.deepcopy(self.model)
-            for p in global_model.parameters():
-                p.requires_grad = False
-
-            self.model.to(DEVICE)
-            global_model.to(DEVICE)
-
-            self.before_round(input_model, global_model)
-
-            val_loss_global_model, val_acc_global_model = evaluate_with_loss(
-                global_model, self.valid_loader, self.criterion
+            train_dataset, valid_dataset = self.task_spec.create_datasets(
+                self.site_name,
+                train_idx_root=self.args.train_idx_root,
+                seed=self.args.seed,
+                data_root=self.args.data_root,
             )
-            print(
-                "Global model validation - "
-                f"acc: {100 * val_acc_global_model:.2f}% "
-                f"loss: {val_loss_global_model:.4f}"
+            self.train_loader, self.valid_loader = self.task_spec.create_data_loaders(
+                train_dataset, valid_dataset, batch_size=self.args.batch_size, num_workers=self.args.num_workers
             )
-            self.summary_writer.add_scalar("val_acc_global_model", val_acc_global_model, input_model.current_round)
-            self.summary_writer.add_scalar("val_loss_global_model", val_loss_global_model, input_model.current_round)
 
-            steps = self.local_steps()
-            for epoch in range(self.args.aggregation_epochs):
-                self.model.train()
-                running_loss = 0.0
-                running_correct = 0
-                running_total = 0
-                for data in self.train_loader:
-                    inputs, labels = data[0].to(DEVICE), data[1].to(DEVICE)
+            self._init_attack()
 
-                    self.optimizer.zero_grad()
-                    outputs = self.model(inputs)
-                    loss = self.compute_loss(outputs, labels, self.model, global_model)
-                    loss.backward()
-                    self.after_backward(self.model, global_model)
-                    self.optimizer.step()
+            while flare.is_running():
+                input_model = flare.receive()
+                print(f"\\n[Current Round={input_model.current_round}, Site={self.site_name}]\\n")
 
-                    running_loss += loss.item()
-                    preds = outputs.argmax(dim=1)
-                    running_correct += (preds == labels).sum().item()
-                    running_total += labels.numel()
+                self._init_scheduler(input_model)
+                self._load_global_model(input_model)
 
-                avg_loss = running_loss / max(1, len(self.train_loader))
-                train_acc = float(running_correct) / float(running_total) if running_total > 0 else 0.0
-                global_epoch = input_model.current_round * self.args.aggregation_epochs + epoch
-                curr_lr = get_lr_values(self.optimizer)[0]
+                global_model = copy.deepcopy(self.model)
+                for p in global_model.parameters():
+                    p.requires_grad = False
 
-                self.summary_writer.add_scalar("global_round", input_model.current_round, global_epoch)
-                self.summary_writer.add_scalar("global_epoch", global_epoch, global_epoch)
-                self.summary_writer.add_scalar("train_loss", avg_loss, global_epoch)
-                self.summary_writer.add_scalar("train_acc", train_acc, global_epoch)
-                self.summary_writer.add_scalar("learning_rate", curr_lr, global_epoch)
+                self.model.to(DEVICE)
+                global_model.to(DEVICE)
 
+                self.before_round(input_model, global_model)
+
+                val_loss_global_model, val_acc_global_model = evaluate_with_loss(
+                    global_model, self.valid_loader, self.criterion
+                )
                 print(
-                    f"{self.site_name}: Epoch [{epoch+1}/{self.args.aggregation_epochs}] "
-                    f"- Loss: {avg_loss:.4f} - LR: {curr_lr:.6f}"
+                    "Global model validation - "
+                    f"acc: {100 * val_acc_global_model:.2f}% "
+                    f"loss: {val_loss_global_model:.4f}"
+                )
+                self.summary_writer.add_scalar("val_acc_global_model", val_acc_global_model, input_model.current_round)
+                self.summary_writer.add_scalar(
+                    "val_loss_global_model", val_loss_global_model, input_model.current_round
                 )
 
-                val_loss_local_model, val_acc_local_model = evaluate_with_loss(
-                    self.model, self.valid_loader, self.criterion
-                )
-                self.summary_writer.add_scalar("val_acc_local_model", val_acc_local_model, global_epoch)
-                self.summary_writer.add_scalar("val_loss_local_model", val_loss_local_model, global_epoch)
-                if self.args.evaluate_local:
+                steps = self.local_steps()
+                for epoch in range(self.args.aggregation_epochs):
+                    self.model.train()
+                    running_loss = 0.0
+                    running_correct = 0
+                    running_total = 0
+                    for data in self.train_loader:
+                        inputs, labels = data[0].to(DEVICE), data[1].to(DEVICE)
+
+                        self.optimizer.zero_grad()
+                        outputs = self.model(inputs)
+                        loss = self.compute_loss(outputs, labels, self.model, global_model)
+                        loss.backward()
+                        self.after_backward(self.model, global_model)
+                        self.optimizer.step()
+
+                        running_loss += loss.item()
+                        preds = outputs.argmax(dim=1)
+                        running_correct += (preds == labels).sum().item()
+                        running_total += labels.numel()
+
+                    avg_loss = running_loss / max(1, len(self.train_loader))
+                    train_acc = float(running_correct) / float(running_total) if running_total > 0 else 0.0
+                    global_epoch = input_model.current_round * self.args.aggregation_epochs + epoch
+                    curr_lr = get_lr_values(self.optimizer)[0]
+
+                    self.summary_writer.add_scalar("global_round", input_model.current_round, global_epoch)
+                    self.summary_writer.add_scalar("global_epoch", global_epoch, global_epoch)
+                    self.summary_writer.add_scalar("train_loss", avg_loss, global_epoch)
+                    self.summary_writer.add_scalar("train_acc", train_acc, global_epoch)
+                    self.summary_writer.add_scalar("learning_rate", curr_lr, global_epoch)
+
                     print(
-                        "Local model validation - "
-                        f"acc: {100 * val_acc_local_model:.2f}% "
-                        f"loss: {val_loss_local_model:.4f}"
+                        f"{self.site_name}: Epoch [{epoch + 1}/{self.args.aggregation_epochs}] "
+                        f"- Loss: {avg_loss:.4f} - LR: {curr_lr:.6f}"
                     )
 
-                if self.scheduler is not None:
-                    self.scheduler.step()
+                    val_loss_local_model, val_acc_local_model = evaluate_with_loss(
+                        self.model, self.valid_loader, self.criterion
+                    )
+                    self.summary_writer.add_scalar("val_acc_local_model", val_acc_local_model, global_epoch)
+                    self.summary_writer.add_scalar("val_loss_local_model", val_loss_local_model, global_epoch)
+                    if self.args.evaluate_local:
+                        print(
+                            "Local model validation - "
+                            f"acc: {100 * val_acc_local_model:.2f}% "
+                            f"loss: {val_loss_local_model:.4f}"
+                        )
 
-            print(f"Finished training for current round {input_model.current_round}")
-            self.after_round(global_model, steps)
+                    if self.scheduler is not None:
+                        self.scheduler.step()
 
-            model_diff, diff_norm = compute_model_diff(self.model, global_model)
-            base_norm = float(diff_norm)
-            self.summary_writer.add_scalar("diff_norm", base_norm, input_model.current_round)
+                print(f"Finished training for current round {input_model.current_round}")
+                self.after_round(global_model, steps)
 
-            attack_info = None
-            if self.attack is not None:
-                rng = None
-                if self.args.attack_seed is not None:
-                    rng = torch.Generator(device="cpu")
-                    rng.manual_seed(int(self.args.attack_seed) + int(input_model.current_round))
-                ctx = AttackContext(
-                    base_diff=model_diff,
-                    base_norm=base_norm,
-                    global_model=global_model,
-                    local_model=self.model,
-                    train_loader=self.train_loader,
-                    criterion=self.criterion,
-                    device=DEVICE,
-                    current_round=int(input_model.current_round),
-                    rng=rng,
+                model_diff, diff_norm = compute_model_diff(self.model, global_model)
+                base_norm = float(diff_norm)
+                self.summary_writer.add_scalar("diff_norm", base_norm, input_model.current_round)
+
+                attack_info = None
+                if self.attack is not None:
+                    rng = None
+                    if self.args.attack_seed is not None:
+                        rng = torch.Generator(device="cpu")
+                        rng.manual_seed(int(self.args.attack_seed) + int(input_model.current_round))
+                    ctx = AttackContext(
+                        base_diff=model_diff,
+                        base_norm=base_norm,
+                        global_model=global_model,
+                        local_model=self.model,
+                        train_loader=self.train_loader,
+                        criterion=self.criterion,
+                        device=DEVICE,
+                        current_round=int(input_model.current_round),
+                        rng=rng,
+                    )
+                    model_diff, attack_info = self.attack.apply(model_diff, ctx)
+                    attacked_norm = diff_l2_norm(model_diff)
+                    self.summary_writer.add_scalar("diff_norm_attacked", attacked_norm, input_model.current_round)
+                    self.summary_writer.add_scalar(
+                        "diff_norm_ratio",
+                        attacked_norm / (base_norm + 1e-12),
+                        input_model.current_round,
+                    )
+                    print(f"{self.site_name}: attack={self.attack.name} info={attack_info}")
+
+                num_examples = len(self.train_loader.dataset)
+                meta = {
+                    # NVFlare's default FedAvg recipe uses NUM_STEPS_CURRENT_ROUND as the aggregation weight.
+                    FLMetaKey.NUM_STEPS_CURRENT_ROUND: float(num_examples),
+                    "local_steps_current_round": int(steps),
+                }
+                if self.attack is not None:
+                    meta["attack_name"] = self.attack.name
+                    if attack_info is not None:
+                        meta["attack_info"] = attack_info
+
+                output_model = flare.FLModel(
+                    params=model_diff,
+                    params_type=ParamsType.DIFF,
+                    metrics={"accuracy": val_acc_global_model, "loss": val_loss_global_model},
+                    meta=meta,
                 )
-                model_diff, attack_info = self.attack.apply(model_diff, ctx)
-                attacked_norm = diff_l2_norm(model_diff)
-                self.summary_writer.add_scalar("diff_norm_attacked", attacked_norm, input_model.current_round)
-                self.summary_writer.add_scalar(
-                    "diff_norm_ratio",
-                    attacked_norm / (base_norm + 1e-12),
-                    input_model.current_round,
-                )
-                print(f"{self.site_name}: attack={self.attack.name} info={attack_info}")
 
-            num_examples = len(self.train_loader.dataset)
-            meta = {
-                # NVFlare's default FedAvg recipe uses NUM_STEPS_CURRENT_ROUND as the aggregation weight.
-                FLMetaKey.NUM_STEPS_CURRENT_ROUND: float(num_examples),
-                "local_steps_current_round": int(steps),
-            }
-            if self.attack is not None:
-                meta["attack_name"] = self.attack.name
-                if attack_info is not None:
-                    meta["attack_info"] = attack_info
-
-            output_model = flare.FLModel(
-                params=model_diff,
-                params_type=ParamsType.DIFF,
-                metrics={"accuracy": val_acc_global_model, "loss": val_loss_global_model},
-                meta=meta,
-            )
-
-            flare.send(output_model)
+                flare.send(output_model)
+        finally:
+            close_fn = getattr(self.summary_writer, "close", None)
+            if callable(close_fn):
+                close_fn()

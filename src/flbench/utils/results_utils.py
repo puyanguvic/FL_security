@@ -74,9 +74,7 @@ def build_global_metrics_summary(run_result: str | Path) -> dict | None:
         acc_vals = acc_by_round.get(round_idx, [])
         loss_vals = loss_by_round.get(round_idx, [])
         if acc_vals:
-            acc_series.append(
-                {"round": round_idx, "value": sum(acc_vals) / len(acc_vals), "n_sites": len(acc_vals)}
-            )
+            acc_series.append({"round": round_idx, "value": sum(acc_vals) / len(acc_vals), "n_sites": len(acc_vals)})
         if loss_vals:
             loss_series.append(
                 {"round": round_idx, "value": sum(loss_vals) / len(loss_vals), "n_sites": len(loss_vals)}

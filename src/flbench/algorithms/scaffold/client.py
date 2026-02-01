@@ -64,6 +64,7 @@ if __name__ == "__main__":
     p.add_argument("--num_workers", type=int, default=2, help="DataLoader workers")
     p.add_argument("--evaluate_local", action="store_true", help="Evaluate local model each epoch")
     p.add_argument("--seed", type=int, default=0, help="Random seed")
+    p.add_argument("--tracking", type=str, default="tensorboard", choices=["tensorboard", "none"])
     p.add_argument("--data_root", type=str, default=None, help="Dataset root (task-dependent)")
     p.add_argument("--n_clients", type=int, default=0, help="Total number of clients")
     p.add_argument("--n_malicious", type=int, default=0, help="Number of malicious clients")

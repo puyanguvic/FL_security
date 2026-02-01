@@ -34,8 +34,7 @@ def _ensure_tiny_imagenet(root: str) -> None:
 
     if not os.path.isdir(train_dir):
         raise FileNotFoundError(
-            f"Tiny-ImageNet train dir not found after extraction: {train_dir}. "
-            "Please verify the dataset archive."
+            f"Tiny-ImageNet train dir not found after extraction: {train_dir}. Please verify the dataset archive."
         )
 
 

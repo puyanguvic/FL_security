@@ -85,6 +85,7 @@ class FedAvgServer(BaseServer):
             alpha=alpha,
             data_root=getattr(self.args, "data_root", None),
         )
+        train_idx_root = os.path.abspath(train_idx_root)
 
         train_script = os.path.join(os.path.dirname(__file__), "client.py")
         train_args = (
@@ -98,10 +99,7 @@ class FedAvgServer(BaseServer):
             f"--seed {self.args.seed}"
         )
         train_args = (
-            f"{train_args} "
-            f"--n_clients {n_clients} "
-            f"--n_malicious {n_malicious} "
-            f"--malicious_mode {malicious_mode}"
+            f"{train_args} --n_clients {n_clients} --n_malicious {n_malicious} --malicious_mode {malicious_mode}"
         )
         if getattr(self.args, "malicious_seed", None) is not None:
             train_args = f"{train_args} --malicious_seed {self.args.malicious_seed}"
@@ -117,6 +115,8 @@ class FedAvgServer(BaseServer):
             f"--attack_pgd_max_batches {self.args.attack_pgd_max_batches} "
             f"--attack_pgd_init {self.args.attack_pgd_init}"
         )
+        if getattr(self.args, "tracking", None) is not None:
+            train_args = f"{train_args} --tracking {self.args.tracking}"
         if getattr(self.args, "data_root", None):
             train_args = f"{train_args} --data_root {self.args.data_root}"
         if getattr(self.args, "attack_seed", None) is not None:
@@ -153,7 +153,7 @@ class FedAvgServer(BaseServer):
         if self.args.tracking != "none":
             add_experiment_tracking(recipe, tracking_type=self.args.tracking)
 
-        sim_workspace_root = getattr(self.args, "sim_workspace_root", "/tmp/nvflare/simulation")
+        sim_workspace_root = getattr(self.args, "sim_workspace_root", "experiments/nvflare/simulation")
         job_workspace = os.path.join(sim_workspace_root, job_name)
         meta_path = os.path.join(job_workspace, "flbench_run_meta.json")
         if getattr(self.args, "resume", False) and os.path.exists(job_workspace):
@@ -197,7 +197,7 @@ class FedAvgServer(BaseServer):
 
         copied_to = self._copy_run_result_to_results_dir(
             run_result=run_result,
-            results_dir=getattr(self.args, "results_dir", "results"),
+            results_dir=getattr(self.args, "results_dir", "experiments/runs"),
             job_name=job_name,
         )
         if copied_to is not None:

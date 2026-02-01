@@ -43,8 +43,12 @@ pip-wheel-metadata/
 # =========================
 # Experiment outputs
 # =========================
+# Canonical experiment root (keep docs)
+experiments/**
+!experiments/README.md
+
+# Legacy outputs (kept for backwards compatibility)
 results/
-experiments/runs/
 
 # =========================
 # NVFLARE runtime artifacts
