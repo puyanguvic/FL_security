@@ -1,0 +1,4 @@
+algo: fedavg
+num_rounds: 50
+aggregation_epochs: 4
+lr: 0.05

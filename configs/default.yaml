@@ -1,0 +1,16 @@
+# Base config (optional). CLI flags still take precedence.
+
+algo: fedavg
+task: vision/cifar10
+model: cnn/moderate
+
+n_clients: 8
+num_rounds: 20
+aggregation_epochs: 4
+batch_size: 64
+lr: 0.05
+alpha: 0.5
+seed: 0
+
+attack: none
+defense: none

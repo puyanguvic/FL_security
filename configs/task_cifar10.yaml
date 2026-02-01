@@ -1,0 +1,4 @@
+task: vision/cifar10
+model: cnn/moderate
+alpha: 0.5
+data_root: null

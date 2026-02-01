@@ -1,1 +1,1 @@
-__all__ = ["core", "algorithms", "tasks", "models", "utils"]
+__all__ = ["cli", "core", "algorithms", "tasks", "models", "utils", "attacks", "defenses"]

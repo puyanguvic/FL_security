@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-flbench-run = "flbench.scripts.run_sim:main"
+flbench-run = "flbench.cli.main:main"
 
 [build-system]
 requires = ["hatchling>=1.21"]
