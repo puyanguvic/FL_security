@@ -74,7 +74,7 @@ def build_client_parser(config_defaults: dict | None = None) -> argparse.Argumen
         "--attack",
         type=str,
         default="none",
-        help="Attack name (e.g., sign_flip, scale, gaussian, pgd_minmax)",
+        help="Attack name (client update: sign_flip/scale/gaussian/pgd_minmax; byzantine: lie/fang/sme/backdoor/minmax/minsum)",
     )
     p.add_argument(
         "--attack_kv",

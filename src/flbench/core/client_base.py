@@ -13,7 +13,8 @@ from nvflare.apis.fl_constant import FLMetaKey
 from nvflare.app_common.abstract.fl_model import ParamsType
 from nvflare.client.tracking import SummaryWriter
 
-from flbench.attacks import AttackContext, build_attack_from_args, diff_l2_norm
+from flbench.attacks import AttackContext, build_attack_from_args, diff_l2_norm, is_byzantine_attack_name
+from flbench.core.logging import silence_nvflare
 from flbench.utils.reproducibility import set_seed
 from flbench.utils.torch_utils import compute_model_diff, evaluate_with_loss, get_lr_values
 
@@ -47,7 +48,7 @@ def _resolve_device(device_spec: str | torch.device | None) -> torch.device:
         torch.backends.cudnn.benchmark = True
     return device
 
-logging.getLogger("nvflare").setLevel(logging.ERROR)
+silence_nvflare()
 
 
 class _NullSummaryWriter:
@@ -160,6 +161,16 @@ class BaseClient:
 
     def _init_attack(self):
         self.is_malicious = self._is_malicious_site(self.site_name)
+        attack_name = str(getattr(self.args, "attack", "none") or "none").lower()
+        if is_byzantine_attack_name(attack_name):
+            if self.is_malicious:
+                print(f"{self.site_name}: marked as malicious (first {self.args.n_malicious})")
+                print(f"{self.site_name}: server-side byzantine attack '{attack_name}' configured")
+            else:
+                print(f"{self.site_name}: byzantine attack '{attack_name}' configured but client is benign")
+            self.attack = None
+            return
+
         configured_attack = build_attack_from_args(self.args)
         if self.is_malicious:
             print(f"{self.site_name}: marked as malicious (first {self.args.n_malicious})")

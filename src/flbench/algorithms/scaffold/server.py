@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import shlex
+from pathlib import Path
 
 from nvflare.apis.dxo import DataKind
 from nvflare.app_opt.pt.recipes.fedavg import FedAvgRecipe
@@ -11,10 +12,11 @@ from nvflare.recipe import SimEnv, add_experiment_tracking
 
 from flbench.algorithms.scaffold.model import ScaffoldModel
 from flbench.core.aggregation import build_nvflare_aggregator
+from flbench.core.logging import silence_nvflare
 from flbench.core.server_base import BaseServer
 from flbench.utils.results_utils import write_client_metrics_csv, write_global_metrics_csv, write_global_metrics_summary
 
-logging.getLogger("nvflare").setLevel(logging.ERROR)
+silence_nvflare()
 
 
 class ScaffoldServer(BaseServer):
@@ -165,7 +167,8 @@ class ScaffoldServer(BaseServer):
 
             rmtree(job_workspace, ignore_errors=True)
 
-        env = SimEnv(num_clients=num_clients, workspace_root=sim_workspace_root)
+        log_config = Path(__file__).resolve().parents[4] / "configs" / "nvflare_log_config.json"
+        env = SimEnv(num_clients=num_clients, workspace_root=sim_workspace_root, log_config=str(log_config))
         run = recipe.execute(env)
 
         status = run.get_status()

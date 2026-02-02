@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 from flbench.utils.cli_kv import merge_kv_and_file
+from .byzantine_registry import is_byzantine_attack_name
 
 StateDict = Dict[str, torch.Tensor]
 
@@ -206,6 +207,10 @@ def list_attacks() -> Tuple[str, ...]:
     return tuple(sorted(_UPDATE_ATTACKS.keys()))
 
 
+def list_update_attacks() -> Tuple[str, ...]:
+    return list_attacks()
+
+
 def diff_l2_norm(diff: StateDict) -> float:
     sq_sum = 0.0
     for v in diff.values():
@@ -223,6 +228,9 @@ def _get(cfg: Dict[str, Any], *keys: str, default: Any = None) -> Any:
 def build_attack_from_args(args) -> UpdateAttack | None:
     name = str(getattr(args, "attack", "none") or "none").lower()
     if name in {"none", "null", ""}:
+        return None
+    if is_byzantine_attack_name(name):
+        # Server-side byzantine attacks are handled in the aggregator.
         return None
 
     cfg = merge_kv_and_file(kv=getattr(args, "attack_kv", None), config_path=getattr(args, "attack_config", None))
@@ -259,4 +267,4 @@ def build_attack_from_args(args) -> UpdateAttack | None:
             init=init,
         )
 
-    raise KeyError(f"Unknown attack '{name}'. Available: {list_attacks()}")
+    raise KeyError(f"Unknown update attack '{name}'. Available: {list_attacks()}")

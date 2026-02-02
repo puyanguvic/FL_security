@@ -1,32 +1,29 @@
 
-from .registry import AttackContext, build_attack_from_args, diff_l2_norm, list_attacks
+from .byzantine_registry import (
+    BYZANTINE_ATTACKS,
+    build_byzantine_attack_from_args,
+    is_byzantine_attack_name,
+    list_byzantine_attacks,
+)
+from .registry import AttackContext, build_attack_from_args, diff_l2_norm, list_attacks as list_update_attacks
 
-# Optional: byzantine attack registry (used outside the client-side update attacks)
-try:
-    from .noise.gaussian import GaussianAttack
-    from .statistical.lie import LIEAttack
-    from .model_poisoning.fang import FangAttack
-    from .model_poisoning.sme import SMEAttack
-    from .model_poisoning.backdoor_layers import BackdoorCriticalLayerAttack
-    from .optimization.minmax import MinMaxAttack
-    from .optimization.minsum import MinSumAttack
 
-    ATTACK_REGISTRY = {
-        "gaussian": GaussianAttack,
-        "lie": LIEAttack,
-        "fang": FangAttack,
-        "sme": SMEAttack,
-        "backdoor": BackdoorCriticalLayerAttack,
-        "minmax": MinMaxAttack,
-        "minsum": MinSumAttack,
-    }
-except Exception:
-    ATTACK_REGISTRY = {}
+def list_attacks():
+    update = set(list_update_attacks())
+    byz = set(list_byzantine_attacks())
+    return tuple(sorted(update | byz))
+
+
+ATTACK_REGISTRY = BYZANTINE_ATTACKS
 
 __all__ = [
     "AttackContext",
     "build_attack_from_args",
+    "build_byzantine_attack_from_args",
     "diff_l2_norm",
     "list_attacks",
+    "list_byzantine_attacks",
+    "list_update_attacks",
+    "is_byzantine_attack_name",
     "ATTACK_REGISTRY",
 ]

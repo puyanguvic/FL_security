@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List
+
+import numpy as np
 
 from nvflare.app_common.aggregators import InTimeAccumulateWeightedAggregator
 from nvflare.app_common.app_constant import AppConstants
 from nvflare.app_common.abstract.model import ModelLearnableKey
 from nvflare.apis.dxo import DataKind, DXO, from_shareable
-from nvflare.apis.fl_constant import MetaKey, ReservedKey
+from nvflare.apis.fl_constant import FLMetaKey, ReservedKey
+
+from flbench.utils.model_averaging import average_weights, weighted_average_weights
 
 
 class DefenseAggregator(InTimeAccumulateWeightedAggregator):
@@ -18,6 +23,9 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
         expected_data_kind: Any,
         aggregation_weights: Dict[str, float],
         weigh_by_local_iter: bool = True,
+        attack: Any | None = None,
+        attack_name: str | None = None,
+        malicious_site_indices: Set[str] | list[str] | None = None,
     ) -> None:
         super().__init__(
             expected_data_kind=expected_data_kind,
@@ -25,6 +33,12 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
             weigh_by_local_iter=weigh_by_local_iter,
         )
         self.defense = defense
+        self.attack = attack
+        self.attack_name = attack_name
+        if malicious_site_indices is None:
+            self.malicious_site_indices: List[str] = []
+        else:
+            self.malicious_site_indices = [str(v) for v in malicious_site_indices]
         self._defense_updates: List[dict] = []
 
     def _to_torch_state_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -65,6 +79,25 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
                 out[k] = gv.clone().zero_() if hasattr(gv, "clone") else gv
         return out
 
+    def _to_numpy_state_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        for k, v in data.items():
+            if hasattr(v, "detach"):
+                out[k] = v.detach().cpu().numpy()
+            else:
+                out[k] = np.asarray(v)
+        return out
+
+    def _canonical_site_name(self, name: Any) -> str:
+        s = str(name)
+        match = re.search(r"(site-\\d+)", s)
+        if match:
+            return match.group(1)
+        match = re.search(r"(\\d+)$", s)
+        if match:
+            return f"site-{match.group(1)}"
+        return s
+
     def accept(self, shareable, fl_ctx) -> bool:
         accepted = super().accept(shareable, fl_ctx)
         if not accepted:
@@ -80,7 +113,7 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
             return True
 
         contributor_name = shareable.get_peer_prop(key=ReservedKey.IDENTITY_NAME, default="?")
-        n_iter = dxo.get_meta_prop(MetaKey.NUM_STEPS_CURRENT_ROUND)
+        n_iter = dxo.get_meta_prop(FLMetaKey.NUM_STEPS_CURRENT_ROUND)
         if n_iter is None:
             n_iter = 1.0
 
@@ -98,7 +131,7 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
         return True
 
     def aggregate(self, fl_ctx):
-        if self.defense is None or not self._defense_updates:
+        if (self.defense is None and self.attack is None) or not self._defense_updates:
             return super().aggregate(fl_ctx)
 
         # Only handle single DXO for now.
@@ -117,21 +150,43 @@ class DefenseAggregator(InTimeAccumulateWeightedAggregator):
         else:
             return super().aggregate(fl_ctx)
 
-        all_indices = list(range(len(client_weights)))
-        defended_weights, info = self.defense.defend(
-            client_updates=client_weights,
-            global_weights_before=global_weights,
-            all_client_indices=all_indices,
-            weights=weights,
-        )
-        if info:
-            self.logger.info(f"Defense info: {info}")
+        if self.attack is not None and self.malicious_site_indices:
+            malicious_set = {self._canonical_site_name(v) for v in self.malicious_site_indices}
+            all_names = [self._canonical_site_name(u.get("contributor_name", "?")) for u in self._defense_updates]
+            client_weights = self.attack.attack(
+                client_updates=client_weights,
+                global_weights=global_weights,
+                all_client_indices=all_names,
+                malicious_client_indices=malicious_set,
+            )
+            if self.attack_name:
+                self.logger.info(f"Applied byzantine attack: {self.attack_name}")
+
+        if self.defense is not None:
+            all_indices = list(range(len(client_weights)))
+            defended_weights, info = self.defense.defend(
+                client_updates=client_weights,
+                global_weights_before=global_weights,
+                all_client_indices=all_indices,
+                weights=weights,
+            )
+            if info:
+                self.logger.info(f"Defense info: {info}")
+        else:
+            if weights is not None and len(weights) == len(client_weights):
+                defended_weights = weighted_average_weights(client_weights, weights)
+            else:
+                defended_weights = average_weights(client_weights)
 
         if data_kind == DataKind.WEIGHT_DIFF:
             defended_data = self._weights_to_diff(defended_weights, global_weights)
         else:
             defended_data = defended_weights
 
+        defended_data = self._to_numpy_state_dict(defended_data)
+
         self._defense_updates = []
+        for agg in self.dxo_aggregators.values():
+            agg.reset_aggregation_helper()
         dxo = DXO(data_kind=data_kind, data=defended_data)
         return dxo.to_shareable()

@@ -69,10 +69,12 @@ Both the old and new CLI flags are accepted.
 - `malicious_seed: int = null`
   - Seed for random malicious selection (falls back to `seed` if unset)
 
-## Attacks (client update attacks)
+## Attacks (client update + server-side byzantine)
 
 - `attack: str = "none"`
-  - One of: `none`, `scale`, `sign_flip`, `gaussian`, `pgd_minmax`
+  - One of: `none`, `scale`, `sign_flip`, `gaussian`, `pgd_minmax`, `lie`, `fang`, `sme`, `backdoor`, `minmax`, `minsum`, `byz_gaussian`
+  - Update attacks (`scale`, `sign_flip`, `gaussian`, `pgd_minmax`) run on malicious clients before sending updates.
+  - Byzantine attacks (`lie`, `fang`, `sme`, `backdoor`, `minmax`, `minsum`, `byz_gaussian`) run on the server over collected updates and require `n_malicious > 0`.
 - `attack_kv: [key=value] = []`
   - Repeatable key/value overrides for attack parameters
 - `attack_config: str = null`
@@ -90,6 +92,15 @@ Both the old and new CLI flags are accepted.
   - `zero`, `local`, or `sign`
 - `attack_seed: int = null`
   - Optional seed for stochastic attacks
+
+### Byzantine attack params (use `attack_kv` / `attack_config`)
+
+- `learning_rate` / `lr` / `attack_lr`: for `sme`, `minmax`, `minsum` (defaults to `lr`)
+- `surrogate_scale`: for `sme` (default `1.0`)
+- `attacker_ability`: for `sme`, `backdoor`, `minmax` (`Full` or `Part`)
+- `critical_layer_names` / `layers`: for `backdoor` (list or comma-separated string)
+- `poison_scale`: for `backdoor` (default `1.0`)
+- `attack_scale` / `scale`: for `byz_gaussian` (default `attack_scale`)
 
 ## Defenses (server aggregation)
 

@@ -117,14 +117,14 @@ def build_parser(config_defaults: dict | None = None) -> argparse.ArgumentParser
     # Tracking
     p.add_argument("--tracking", type=str, default="tensorboard", choices=["tensorboard", "none"])
 
-    # Client-side update attacks
+    # Attacks (client update or server-side byzantine)
     attack_choices = ["none"] + list(list_attacks())
     p.add_argument(
         "--attack",
         type=str,
         default="none",
         choices=attack_choices,
-        help=f"Client update attack. Available: {', '.join(attack_choices)}",
+        help=f"Attack (client update or server-side byzantine). Available: {', '.join(attack_choices)}",
     )
     p.add_argument(
         "--attack_kv",
