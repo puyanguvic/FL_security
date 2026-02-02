@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import torch.nn as nn
 
-from flbench.tasks.sensor.har import dataset as _dataset
-from flbench.tasks.sensor.har.split import split_and_save as _split_and_save
+from . import dataset as _dataset
+from .split import split_and_save as _split_and_save
 
 default_split_root = "experiments/splits/har"
 DEFAULT_NUM_CLASSES = 6

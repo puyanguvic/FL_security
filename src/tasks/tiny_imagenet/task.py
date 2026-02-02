@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from flbench.models import AlexNetSmall, ModerateCNN, VGG11Small
-from flbench.tasks.tiny_imagenet import dataset as _dataset
-from flbench.tasks.tiny_imagenet.split import split_and_save as _split_and_save
+from models import AlexNetSmall, ModerateCNN, VGG11Small
+from . import dataset as _dataset
+from .split import split_and_save as _split_and_save
 
 default_split_root = "experiments/splits/tiny_imagenet"
 DEFAULT_NUM_CLASSES = 200

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from flbench.models import AlexNetSmall, ModerateCNN, VGG11Small
-from flbench.tasks.fashionmnist import dataset as _dataset
-from flbench.tasks.fashionmnist.split import split_and_save as _split_and_save
+from models import AlexNetSmall, ModerateCNN, VGG11Small
+from . import dataset as _dataset
+from .split import split_and_save as _split_and_save
 
-default_split_root = "experiments/splits/fashionmnist"
+default_split_root = "experiments/splits/cifar10"
 default_model = "cnn/moderate"
 
 create_datasets = _dataset.create_datasets
@@ -15,12 +15,12 @@ def build_model(model_key: str):
     if not model_key:
         model_key = default_model
     if model_key == "cnn/moderate":
-        return ModerateCNN(in_channels=1, input_size=28)
+        return ModerateCNN(in_channels=3, input_size=32)
     if model_key == "vgg11":
-        return VGG11Small(num_classes=10, in_channels=1, min_input_size=32)
+        return VGG11Small(num_classes=10, in_channels=3, min_input_size=32)
     if model_key == "alexnet":
-        return AlexNetSmall(num_classes=10, in_channels=1)
-    raise ValueError(f"Unsupported model '{model_key}' for task fashionmnist")
+        return AlexNetSmall(num_classes=10, in_channels=3)
+    raise ValueError(f"Unsupported model '{model_key}' for task cifar10")
 
 
 def split_and_save(*, num_sites: int, split_dir_prefix: str, seed: int = 0, **kwargs) -> str:

@@ -63,10 +63,10 @@ def _register_builtin() -> None:
     from flbench.algorithms.fedavg.server import run_fedavg
     from flbench.algorithms.fedprox.server import run_fedprox
     from flbench.algorithms.scaffold.server import run_scaffold
-    from flbench.tasks.sensor.har import task as har_task
-    from flbench.tasks.cifar10 import task as cifar10_task
-    from flbench.tasks.fashionmnist import task as fashion_task
-    from flbench.tasks.tiny_imagenet import task as tiny_task
+    from tasks.sensor.har import task as har_task
+    from tasks.cifar10 import task as cifar10_task
+    from tasks.fashionmnist import task as fashion_task
+    from tasks.tiny_imagenet import task as tiny_task
 
     register_algo(AlgoSpec(name="fedavg", run=run_fedavg))
     register_algo(AlgoSpec(name="fedprox", run=run_fedprox))

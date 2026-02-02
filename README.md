@@ -31,9 +31,18 @@ src/flbench/
   algorithms/
   attacks/
   defenses/
-  tasks/
-  models/
   utils/
+
+src/tasks/
+  cifar10/
+  fashionmnist/
+  tiny_imagenet/
+  sensor/har/
+
+src/models/
+  alexnet.py
+  moderate_cnn.py
+  vgg11.py
 ```
 
 ## Included modules
@@ -80,7 +89,7 @@ Create `src/flbench/algorithms/<algo_name>/` with:
 Register it in `src/flbench/core/registry.py`.
 
 ### Add a new task
-Create `src/flbench/tasks/<domain>/<task_name>/` with:
+Create `src/tasks/<domain>/<task_name>/` with:
 - `dataset.py` (dataset + loaders + task-specific transforms)
 - `split.py` (optional non-iid split)
 - `task.py` (build_model + split_and_save + dataset factories)
