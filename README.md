@@ -58,10 +58,37 @@ uv venv
 uv pip install -e .
 
 # Run FedAvg on CIFAR-10 (simulation)
-flbench-run --algo fedavg --task cifar10 --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
+flbench-run --algo fedavg --task cifar10 --model cnn/moderate --num_clients 10 --global_rounds 20 --alpha 0.5
 
 # Run FedAvg on FashionMNIST (simulation)
-flbench-run --algo fedavg --task fashionmnist --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
+flbench-run --algo fedavg --task fashionmnist --model cnn/moderate --num_clients 10 --global_rounds 20 --alpha 0.5
+```
+
+## Experiments
+
+Experiment 1 (no attack):
+
+```bash
+flbench-run --algo fedavg --task cifar10 --model vgg11 \
+  --attack none --global_rounds 20 --num_clients 8 --client_fraction 0.5 \
+  --n_malicious 0 --local_epochs 4 --batch_size 8 --device cuda:0
+```
+
+Experiment 2 (sign-flip attack):
+
+```bash
+flbench-run --algo fedavg --task cifar10 --model vgg11 \
+  --attack sign_flip --global_rounds 20 --num_clients 8 --client_fraction 0.5 \
+  --n_malicious 2 --local_epochs 4 --batch_size 8 --device cuda:0
+```
+
+Experiment 3 (attack + defense):
+
+```bash
+flbench-run --algo fedavg --task cifar10 --model vgg11 \
+  --attack sign_flip --defense multikrum --defense_krum_f 2 --defense_krum_m 1 \
+  --global_rounds 20 --num_clients 8 --client_fraction 0.5 \
+  --n_malicious 2 --local_epochs 4 --batch_size 8 --device cuda:0
 ```
 
 ## Config files (unified)
@@ -82,8 +109,8 @@ Or use a single unified file:
 algo: fedavg
 task: cifar10
 model: cnn/moderate
-n_clients: 8
-num_rounds: 20
+num_clients: 10
+global_rounds: 20
 alpha: 0.5
 
 attack:
@@ -100,6 +127,24 @@ defense:
 
 `attack`/`defense` blocks accept either `params` (inline dict) or `config` (path to a YAML/JSON file), and you can
 still use top-level `attack_config`/`defense_config` if you prefer.
+
+Full parameter manual: `CONFIG_MANUAL.md`.
+
+## Common parameters
+
+Defaults and constraints:
+
+- `seed: int = 42` (int only)
+- `global_rounds: int = 20` (int only, must be > 0)
+- `num_clients: int = 10` (int only, must be >= 1)
+- `client_fraction: float = 0.5` (float only, 0 < f <= 1)
+- `local_epochs: int = 5` (int only, must be >= 1)
+- `batch_size: int = 32` (int only, must be >= 1)
+- `optimizer: str = "sgd"` (one of `sgd`, `adam`, `momentum`)
+- `device: str = "cuda:0"` (`cpu` or `cuda:{idx}`)
+
+Backward-compatible aliases are accepted in configs/CLI:
+`n_clients` -> `num_clients`, `num_rounds` -> `global_rounds`, `aggregation_epochs` -> `local_epochs`.
 
 ## Where outputs go
 

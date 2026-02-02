@@ -1,4 +1,4 @@
 algo: fedavg
-num_rounds: 50
-aggregation_epochs: 4
+global_rounds: 50
+local_epochs: 4
 lr: 0.05

@@ -6,6 +6,7 @@ import sys
 from flbench.attacks import list_attacks
 from flbench.core.registry import get_algo, list_algos, list_tasks
 from flbench.defenses import list_defenses
+from flbench.utils.arg_utils import normalize_common_args
 from flbench.utils.cli_kv import load_config_files, normalize_unified_config
 
 
@@ -68,7 +69,7 @@ def build_parser(config_defaults: dict | None = None) -> argparse.ArgumentParser
     )
 
     # Common FL knobs
-    p.add_argument("--n_clients", type=int, default=8)
+    p.add_argument("--num_clients", "--n_clients", dest="num_clients", type=int, default=10)
     p.add_argument("--n_malicious", type=int, default=0, help="Number of malicious clients")
     p.add_argument(
         "--malicious_mode",
@@ -78,11 +79,14 @@ def build_parser(config_defaults: dict | None = None) -> argparse.ArgumentParser
         help="How to choose malicious clients",
     )
     p.add_argument("--malicious_seed", type=int, default=None, help="Seed for random malicious selection")
-    p.add_argument("--num_rounds", type=int, default=50)
-    p.add_argument("--aggregation_epochs", type=int, default=4)
-    p.add_argument("--batch_size", type=int, default=64)
+    p.add_argument("--global_rounds", "--num_rounds", dest="global_rounds", type=int, default=20)
+    p.add_argument("--local_epochs", "--aggregation_epochs", dest="local_epochs", type=int, default=5)
+    p.add_argument("--client_fraction", type=float, default=0.5, help="Fraction of clients per round (0 < f <= 1)")
+    p.add_argument("--batch_size", type=int, default=32)
+    p.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "momentum"])
     p.add_argument("--lr", type=float, default=5e-2)
     p.add_argument("--num_workers", type=int, default=2)
+    p.add_argument("--device", type=str, default="cuda:0", help="Device: cpu or cuda:{idx}")
     p.add_argument("--prox_mu", type=float, default=0.0, help="FedProx mu coefficient (only for fedprox).")
     p.add_argument(
         "--data_root",
@@ -95,7 +99,7 @@ def build_parser(config_defaults: dict | None = None) -> argparse.ArgumentParser
     p.add_argument("--alpha", type=float, default=0.5, help="Dirichlet alpha (for non-iid splits).")
 
     # Repro
-    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--seed", type=int, default=42)
 
     # Simulation workspace behavior
     p.add_argument(
@@ -195,11 +199,12 @@ def main():
     if config_defaults:
         parser.set_defaults(**_filter_defaults(parser, config_defaults))
     args = parser.parse_args()
+    normalize_common_args(args)
 
     # validate
     _ = get_algo(args.algo)
-    if args.n_malicious < 0 or args.n_malicious > args.n_clients:
-        raise ValueError("n_malicious must be between 0 and n_clients")
+    if args.n_malicious < 0 or args.n_malicious > args.num_clients:
+        raise ValueError("n_malicious must be between 0 and num_clients")
     # task existence check
     # (currently task is used inside algo runner; we validate here for clearer errors)
     from flbench.core.registry import get_task

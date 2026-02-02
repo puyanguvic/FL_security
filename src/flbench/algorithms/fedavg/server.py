@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import shlex
 
@@ -21,15 +22,18 @@ class FedAvgServer(BaseServer):
             "task": self.args.task,
             "model": self.args.model,
             "alpha": self.args.alpha,
-            "n_clients": self.args.n_clients,
+            "num_clients": self.args.num_clients,
             "n_malicious": getattr(self.args, "n_malicious", 0),
             "malicious_mode": getattr(self.args, "malicious_mode", "random"),
             "malicious_seed": getattr(self.args, "malicious_seed", None),
-            "num_rounds": self.args.num_rounds,
-            "aggregation_epochs": self.args.aggregation_epochs,
+            "global_rounds": self.args.global_rounds,
+            "local_epochs": self.args.local_epochs,
+            "client_fraction": getattr(self.args, "client_fraction", None),
             "batch_size": self.args.batch_size,
             "lr": self.args.lr,
             "seed": self.args.seed,
+            "optimizer": getattr(self.args, "optimizer", None),
+            "device": getattr(self.args, "device", None),
             "data_root": getattr(self.args, "data_root", None),
             "attack": getattr(self.args, "attack", "none"),
             "attack_kv": getattr(self.args, "attack_kv", None),
@@ -45,32 +49,33 @@ class FedAvgServer(BaseServer):
 
         task_spec = get_task(self.args.task)
 
-        n_clients = self.args.n_clients
+        num_clients = self.args.num_clients
         n_malicious = getattr(self.args, "n_malicious", 0)
         malicious_mode = getattr(self.args, "malicious_mode", "random")
-        num_rounds = self.args.num_rounds
+        global_rounds = self.args.global_rounds
         alpha = self.args.alpha
         num_workers = self.args.num_workers
         lr = self.args.lr
         batch_size = self.args.batch_size
-        aggregation_epochs = self.args.aggregation_epochs
+        local_epochs = self.args.local_epochs
+        client_fraction = float(getattr(self.args, "client_fraction", 1.0))
         task_short = self.args.task.replace("/", "__")
         job_name = self.args.name if self.args.name else f"fedavg__{task_short}__alpha{alpha}"
 
         print(
-            f"Running FedAvg ({num_rounds} rounds) task={self.args.task} alpha={alpha} "
-            f"clients={n_clients} malicious={n_malicious} mode={malicious_mode}"
+            f"Running FedAvg ({global_rounds} rounds) task={self.args.task} alpha={alpha} "
+            f"clients={num_clients} frac={client_fraction} malicious={n_malicious} mode={malicious_mode}"
         )
 
-        if n_malicious < 0 or n_malicious > n_clients:
-            raise ValueError("n_malicious must be between 0 and n_clients")
+        if n_malicious < 0 or n_malicious > num_clients:
+            raise ValueError("n_malicious must be between 0 and num_clients")
 
         if alpha <= 0.0:
             raise ValueError("alpha must be > 0 for Dirichlet non-iid split")
 
         split_root = task_spec.default_split_root
         train_idx_root = task_spec.split_and_save(
-            num_sites=n_clients,
+            num_sites=num_clients,
             split_dir_prefix=os.path.join(split_root, "dirichlet"),
             seed=self.args.seed,
             alpha=alpha,
@@ -90,12 +95,13 @@ class FedAvgServer(BaseServer):
             f"--num_workers {num_workers} "
             f"--lr {lr} "
             f"--batch_size {batch_size} "
-            f"--aggregation_epochs {aggregation_epochs} "
+            f"--local_epochs {local_epochs} "
             f"--seed {self.args.seed}"
         )
         train_args = (
-            f"{train_args} --n_clients {n_clients} --n_malicious {n_malicious} --malicious_mode {malicious_mode}"
+            f"{train_args} --num_clients {num_clients} --n_malicious {n_malicious} --malicious_mode {malicious_mode}"
         )
+        train_args = f"{train_args} --client_fraction {client_fraction}"
         if getattr(self.args, "malicious_seed", None) is not None:
             train_args = f"{train_args} --malicious_seed {self.args.malicious_seed}"
 
@@ -111,13 +117,20 @@ class FedAvgServer(BaseServer):
             train_args = f"{train_args} --data_root {self.args.data_root}"
         if getattr(self.args, "attack_seed", None) is not None:
             train_args = f"{train_args} --attack_seed {self.args.attack_seed}"
+        if getattr(self.args, "optimizer", None):
+            train_args = f"{train_args} --optimizer {self.args.optimizer}"
+        if getattr(self.args, "device", None):
+            train_args = f"{train_args} --device {self.args.device}"
 
-        aggregator = build_nvflare_aggregator(args=self.args, n_clients=n_clients, expected_data_kind=DataKind.WEIGHT_DIFF)
+        aggregator = build_nvflare_aggregator(
+            args=self.args, num_clients=num_clients, expected_data_kind=DataKind.WEIGHT_DIFF
+        )
+        min_clients = max(1, math.ceil(num_clients * client_fraction))
 
         recipe = FedAvgRecipe(
             name=job_name,
-            min_clients=n_clients,
-            num_rounds=num_rounds,
+            min_clients=min_clients,
+            num_rounds=global_rounds,
             initial_model=task_spec.build_model(self.args.model),
             train_script=train_script,
             train_args=train_args,
@@ -151,7 +164,7 @@ class FedAvgServer(BaseServer):
 
             rmtree(job_workspace, ignore_errors=True)
 
-        env = SimEnv(num_clients=n_clients, workspace_root=sim_workspace_root)
+        env = SimEnv(num_clients=num_clients, workspace_root=sim_workspace_root)
         run = recipe.execute(env)
 
         status = run.get_status()

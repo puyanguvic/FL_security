@@ -17,9 +17,35 @@ from flbench.attacks import AttackContext, build_attack_from_args, diff_l2_norm
 from flbench.utils.reproducibility import set_seed
 from flbench.utils.torch_utils import compute_model_diff, evaluate_with_loss, get_lr_values
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-if torch.cuda.is_available():
-    torch.backends.cudnn.benchmark = True
+
+def _resolve_device(device_spec: str | torch.device | None) -> torch.device:
+    if isinstance(device_spec, torch.device):
+        device = device_spec
+    else:
+        spec = "cuda:0" if device_spec in (None, "") else str(device_spec).lower().strip()
+        if spec == "cuda":
+            spec = "cuda:0"
+        if spec == "cpu":
+            device = torch.device("cpu")
+        elif spec.startswith("cuda:"):
+            if not torch.cuda.is_available():
+                logging.warning("CUDA requested but not available; falling back to CPU")
+                return torch.device("cpu")
+            try:
+                idx = int(spec.split(":", 1)[1])
+            except ValueError as exc:
+                raise ValueError("device must be 'cpu' or 'cuda:{idx}'") from exc
+            if idx < 0:
+                raise ValueError("device must be 'cpu' or 'cuda:{idx}'")
+            if idx >= torch.cuda.device_count():
+                raise ValueError(f"cuda device index {idx} is out of range")
+            device = torch.device(spec)
+        else:
+            raise ValueError("device must be 'cpu' or 'cuda:{idx}'")
+
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
+    return device
 
 logging.getLogger("nvflare").setLevel(logging.ERROR)
 
@@ -36,13 +62,14 @@ class BaseClient:
     def __init__(self, args):
         self.args = args
         set_seed(args.seed)
+        self.device = _resolve_device(getattr(args, "device", None))
 
         from flbench.core.registry import get_task
 
         self.task_spec = get_task(args.task)
         self.model = self.build_model(self.task_spec)
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(self.model.parameters(), lr=args.lr, momentum=0.9)
+        self.optimizer = self._build_optimizer()
         self.scheduler = None
         self.summary_writer = _NullSummaryWriter()
 
@@ -57,6 +84,16 @@ class BaseClient:
     def build_model(self, task_spec):
         return task_spec.build_model(self.args.model)
 
+    def _build_optimizer(self):
+        opt_name = str(getattr(self.args, "optimizer", "sgd") or "sgd").lower()
+        if opt_name == "sgd":
+            return optim.SGD(self.model.parameters(), lr=self.args.lr)
+        if opt_name == "momentum":
+            return optim.SGD(self.model.parameters(), lr=self.args.lr, momentum=0.9)
+        if opt_name == "adam":
+            return optim.Adam(self.model.parameters(), lr=self.args.lr)
+        raise ValueError(f"Unknown optimizer '{opt_name}'")
+
     def compute_loss(self, outputs, labels, model, global_model):
         return self.criterion(outputs, labels)
 
@@ -70,10 +107,10 @@ class BaseClient:
         return None
 
     def local_steps(self):
-        return self.args.aggregation_epochs * len(self.train_loader)
+        return self.args.local_epochs * len(self.train_loader)
 
     def _site_index(self, site_name: str) -> int | None:
-        match = re.search(r"(\\d+)$", site_name)
+        match = re.search(r"(\d+)$", site_name)
         if not match:
             return None
         return int(match.group(1))
@@ -93,7 +130,7 @@ class BaseClient:
             return self._malicious_set
 
         n_malicious = int(getattr(self.args, "n_malicious", 0) or 0)
-        n_clients = int(getattr(self.args, "n_clients", 0) or 0)
+        n_clients = int(getattr(self.args, "num_clients", 0) or 0)
         mode = str(getattr(self.args, "malicious_mode", "first")).lower()
 
         if n_malicious <= 0:
@@ -102,7 +139,7 @@ class BaseClient:
 
         if n_clients <= 0:
             if mode == "random":
-                print(f"{self.site_name}: random malicious selection requires n_clients; falling back to first-k")
+                print(f"{self.site_name}: random malicious selection requires num_clients; falling back to first-k")
             self._malicious_set = set(range(1, n_malicious + 1))
             return self._malicious_set
 
@@ -140,7 +177,7 @@ class BaseClient:
         if self.scheduler is None and not self.args.no_lr_scheduler:
             total_rounds = input_model.total_rounds
             eta_min = self.args.lr * self.args.cosine_lr_eta_min_factor
-            T_max = total_rounds * self.args.aggregation_epochs
+            T_max = total_rounds * self.args.local_epochs
             self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=T_max, eta_min=eta_min)
             print(f"{self.site_name}: CosineAnnealingLR: initial_lr={self.args.lr}, eta_min={eta_min}, T_max={T_max}")
 
@@ -185,7 +222,17 @@ class BaseClient:
 
             self._init_attack()
 
-            while flare.is_running():
+            while True:
+                try:
+                    if not flare.is_running():
+                        break
+                except RuntimeError as exc:
+                    msg = str(exc).lower()
+                    if "abort" in msg:
+                        print(f"{self.site_name}: server aborted job; stopping client loop.")
+                        break
+                    raise
+
                 input_model = flare.receive()
                 print(f"\\n[Current Round={input_model.current_round}, Site={self.site_name}]\\n")
 
@@ -196,8 +243,8 @@ class BaseClient:
                 for p in global_model.parameters():
                     p.requires_grad = False
 
-                self.model.to(DEVICE)
-                global_model.to(DEVICE)
+                self.model.to(self.device)
+                global_model.to(self.device)
 
                 self.before_round(input_model, global_model)
 
@@ -215,13 +262,13 @@ class BaseClient:
                 )
 
                 steps = self.local_steps()
-                for epoch in range(self.args.aggregation_epochs):
+                for epoch in range(self.args.local_epochs):
                     self.model.train()
                     running_loss = 0.0
                     running_correct = 0
                     running_total = 0
                     for data in self.train_loader:
-                        inputs, labels = data[0].to(DEVICE), data[1].to(DEVICE)
+                        inputs, labels = data[0].to(self.device), data[1].to(self.device)
 
                         self.optimizer.zero_grad()
                         outputs = self.model(inputs)
@@ -237,7 +284,7 @@ class BaseClient:
 
                     avg_loss = running_loss / max(1, len(self.train_loader))
                     train_acc = float(running_correct) / float(running_total) if running_total > 0 else 0.0
-                    global_epoch = input_model.current_round * self.args.aggregation_epochs + epoch
+                    global_epoch = input_model.current_round * self.args.local_epochs + epoch
                     curr_lr = get_lr_values(self.optimizer)[0]
 
                     self.summary_writer.add_scalar("global_round", input_model.current_round, global_epoch)
@@ -247,7 +294,7 @@ class BaseClient:
                     self.summary_writer.add_scalar("learning_rate", curr_lr, global_epoch)
 
                     print(
-                        f"{self.site_name}: Epoch [{epoch + 1}/{self.args.aggregation_epochs}] "
+                        f"{self.site_name}: Epoch [{epoch + 1}/{self.args.local_epochs}] "
                         f"- Loss: {avg_loss:.4f} - LR: {curr_lr:.6f}"
                     )
 
@@ -286,7 +333,7 @@ class BaseClient:
                         local_model=self.model,
                         train_loader=self.train_loader,
                         criterion=self.criterion,
-                        device=DEVICE,
+                        device=self.device,
                         current_round=int(input_model.current_round),
                         rng=rng,
                     )
@@ -318,7 +365,14 @@ class BaseClient:
                     meta=meta,
                 )
 
-                flare.send(output_model)
+                try:
+                    flare.send(output_model)
+                except RuntimeError as exc:
+                    msg = str(exc).lower()
+                    if "abort" in msg:
+                        print(f"{self.site_name}: server aborted job; stopping client loop.")
+                        break
+                    raise
         finally:
             close_fn = getattr(self.summary_writer, "close", None)
             if callable(close_fn):

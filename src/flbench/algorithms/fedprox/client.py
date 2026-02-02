@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import torch
 
-from flbench.core.client_base import DEVICE, BaseClient
+from flbench.core.client_base import BaseClient
 
 
 class FedProxClient(BaseClient):
     def _prox_term(self, model, global_model) -> torch.Tensor:
-        prox = torch.zeros(1, device=DEVICE)
+        prox = torch.zeros(1, device=self.device)
         for p, g in zip(model.parameters(), global_model.parameters(), strict=False):
             prox = prox + (p - g).pow(2).sum()
         return prox

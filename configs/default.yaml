@@ -4,13 +4,16 @@ algo: fedavg
 task: cifar10
 model: cnn/moderate
 
-n_clients: 8
-num_rounds: 20
-aggregation_epochs: 4
-batch_size: 64
+num_clients: 10
+global_rounds: 20
+local_epochs: 5
+client_fraction: 0.5
+batch_size: 32
+optimizer: sgd
+device: cuda:0
 lr: 0.05
 alpha: 0.5
-seed: 0
+seed: 42
 
 attack: none
 defense: none

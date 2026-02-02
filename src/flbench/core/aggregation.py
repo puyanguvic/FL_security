@@ -9,7 +9,7 @@ from flbench.defenses import build_defense_from_args
 from flbench.defenses.aggregator import DefenseAggregator
 
 
-def build_nvflare_aggregator(*, args: Any, n_clients: int, expected_data_kind: DataKind) -> Any:
+def build_nvflare_aggregator(*, args: Any, num_clients: int, expected_data_kind: DataKind) -> Any:
     """Build an NVFlare aggregator with optional defense wrapping.
 
     Design goal:
@@ -22,7 +22,7 @@ def build_nvflare_aggregator(*, args: Any, n_clients: int, expected_data_kind: D
     """
 
     defense = build_defense_from_args(args)
-    aggregation_weights: Dict[str, float] = {f"site-{i}": 1.0 for i in range(1, n_clients + 1)}
+    aggregation_weights: Dict[str, float] = {f"site-{i}": 1.0 for i in range(1, num_clients + 1)}
 
     if defense is None:
         return InTimeAccumulateWeightedAggregator(

@@ -137,6 +137,16 @@ def normalize_unified_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
     out: Dict[str, Any] = dict(cfg)
 
+    # Backward-compatible aliases for renamed FL parameters.
+    aliases = {
+        "n_clients": "num_clients",
+        "num_rounds": "global_rounds",
+        "aggregation_epochs": "local_epochs",
+    }
+    for old_key, new_key in aliases.items():
+        if old_key in out and new_key not in out:
+            out[new_key] = out[old_key]
+
     def _normalize_section(name: str) -> None:
         section = out.get(name)
         params: Dict[str, Any] | None = None

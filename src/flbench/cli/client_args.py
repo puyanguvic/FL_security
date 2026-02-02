@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from flbench.utils.arg_utils import normalize_common_args
 from flbench.utils.cli_kv import load_config_files, normalize_unified_config
 
 
@@ -38,18 +39,28 @@ def build_client_parser(config_defaults: dict | None = None) -> argparse.Argumen
     p.add_argument("--task", type=str, default="cifar10", help="Task key (e.g., cifar10).")
     p.add_argument("--model", type=str, default="cnn/moderate", help="Model key (task resolves it).")
     p.add_argument("--train_idx_root", type=str, default="/tmp/flbench_splits", help="Split index root dir")
-    p.add_argument("--aggregation_epochs", type=int, default=4, help="Local epochs per FL round")
+    p.add_argument("--local_epochs", "--aggregation_epochs", dest="local_epochs", type=int, default=5, help="Local epochs per FL round")
     p.add_argument("--lr", type=float, default=1e-2, help="Learning rate")
     p.add_argument("--prox_mu", type=float, default=0.0, help="FedProx mu coefficient")
     p.add_argument("--no_lr_scheduler", action="store_true", help="Disable LR scheduler")
     p.add_argument("--cosine_lr_eta_min_factor", type=float, default=0.01, help="eta_min factor for cosine LR")
-    p.add_argument("--batch_size", type=int, default=64, help="Batch size")
+    p.add_argument("--batch_size", type=int, default=32, help="Batch size")
     p.add_argument("--num_workers", type=int, default=2, help="DataLoader workers")
     p.add_argument("--evaluate_local", action="store_true", help="Evaluate local model each epoch")
-    p.add_argument("--seed", type=int, default=0, help="Random seed")
+    p.add_argument("--seed", type=int, default=42, help="Random seed")
+    p.add_argument("--client_fraction", type=float, default=0.5, help="Fraction of clients per round (0 < f <= 1)")
+    p.add_argument("--optimizer", type=str, default="sgd", choices=["sgd", "adam", "momentum"])
+    p.add_argument("--device", type=str, default="cuda:0", help="Device: cpu or cuda:{idx}")
     p.add_argument("--tracking", type=str, default="tensorboard", choices=["tensorboard", "none"])
     p.add_argument("--data_root", type=str, default=None, help="Dataset root (task-dependent)")
-    p.add_argument("--n_clients", type=int, default=0, help="Total number of clients")
+    p.add_argument(
+        "--num_clients",
+        "--n_clients",
+        dest="num_clients",
+        type=int,
+        default=10,
+        help="Total number of clients",
+    )
     p.add_argument("--n_malicious", type=int, default=0, help="Number of malicious clients")
     p.add_argument(
         "--malicious_mode",
@@ -111,4 +122,6 @@ def parse_client_args(argv: list[str] | None = None):
     parser = build_client_parser(config_defaults)
     if config_defaults:
         parser.set_defaults(**_filter_defaults(parser, config_defaults))
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    normalize_common_args(args)
+    return args
