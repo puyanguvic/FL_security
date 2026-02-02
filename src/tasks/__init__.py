@@ -1,1 +1,1 @@
-__all__ = ["cifar10", "fashionmnist", "tiny_imagenet", "sensor"]
+__all__ = ["cifar10", "fashionmnist", "tiny_imagenet", "har"]

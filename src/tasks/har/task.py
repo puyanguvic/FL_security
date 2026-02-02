@@ -36,7 +36,7 @@ def build_model(model_key: str):
         model_key = default_model
     if model_key in {"mlp/har", "mlp", "cnn/moderate"}:
         return HARMLP()
-    raise ValueError(f"Unsupported model '{model_key}' for task sensor/har")
+    raise ValueError(f"Unsupported model '{model_key}' for task har")
 
 
 def split_and_save(*, num_sites: int, split_dir_prefix: str, seed: int = 0, **kwargs) -> str:

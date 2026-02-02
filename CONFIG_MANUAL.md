@@ -21,7 +21,7 @@ Both the old and new CLI flags are accepted.
 - `algo: str` (required unless provided in config)
   - One of: `fedavg`, `fedprox`, `scaffold`
 - `task: str` (required unless provided in config)
-  - One of: `cifar10`, `fashionmnist`, `tiny_imagenet`, `sensor/har`
+  - One of: `cifar10`, `fashionmnist`, `tiny_imagenet`, `har`
 - `model: str = "cnn/moderate"`
   - Example: `vgg11`, `alexnet`
 - `name: str = null`

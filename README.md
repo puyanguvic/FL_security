@@ -37,7 +37,7 @@ src/tasks/
   cifar10/
   fashionmnist/
   tiny_imagenet/
-  sensor/har/
+  har/
 
 src/models/
   alexnet.py
@@ -48,7 +48,7 @@ src/models/
 ## Included modules
 
 - `algo`: `fedavg`, `fedprox`, `scaffold`
-- `task`: `cifar10`, `fashionmnist`, `tiny_imagenet`, `sensor/har`
+- `task`: `cifar10`, `fashionmnist`, `tiny_imagenet`, `har`
 - `model`: `cnn/moderate` (plus `vgg11`/`alexnet` in `models/`)
 
 ## Quickstart (uv)

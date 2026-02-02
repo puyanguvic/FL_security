@@ -63,7 +63,7 @@ def _register_builtin() -> None:
     from flbench.algorithms.fedavg.server import run_fedavg
     from flbench.algorithms.fedprox.server import run_fedprox
     from flbench.algorithms.scaffold.server import run_scaffold
-    from tasks.sensor.har import task as har_task
+    from tasks.har import task as har_task
     from tasks.cifar10 import task as cifar10_task
     from tasks.fashionmnist import task as fashion_task
     from tasks.tiny_imagenet import task as tiny_task
@@ -106,7 +106,7 @@ def _register_builtin() -> None:
     )
     register_task(
         TaskSpec(
-            name="sensor/har",
+            name="har",
             build_model=har_task.build_model,
             split_and_save=har_task.split_and_save,
             create_datasets=har_task.create_datasets,
