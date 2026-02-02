@@ -64,6 +64,43 @@ flbench-run --algo fedavg --task cifar10 --model cnn/moderate --n_clients 8 --nu
 flbench-run --algo fedavg --task fashionmnist --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
 ```
 
+## Config files (unified)
+
+You can provide one or more YAML/JSON configs via `--config`. Later files override earlier ones, and CLI flags
+override config values.
+
+Compose small configs:
+
+```bash
+flbench-run --config configs/default.yaml --config configs/algo_fedavg.yaml --config configs/task_cifar10.yaml
+```
+
+Or use a single unified file:
+
+```yaml
+# configs/run.yaml
+algo: fedavg
+task: cifar10
+model: cnn/moderate
+n_clients: 8
+num_rounds: 20
+alpha: 0.5
+
+attack:
+  name: pgd_minmax
+  steps: 3
+  step_size: 0.1
+
+defense:
+  name: multikrum
+  params:
+    f: 2
+    m: 1
+```
+
+`attack`/`defense` blocks accept either `params` (inline dict) or `config` (path to a YAML/JSON file), and you can
+still use top-level `attack_config`/`defense_config` if you prefer.
+
 ## Where outputs go
 
 All experiment artifacts live under `./experiments/` by default:

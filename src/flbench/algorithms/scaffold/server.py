@@ -79,8 +79,12 @@ class ScaffoldServer(BaseServer):
         )
         train_idx_root = os.path.abspath(train_idx_root)
 
-        train_script = os.path.join(os.path.dirname(__file__), "client.py")
+        train_script = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "cli", "client_runner.py")
+        )
+        algo_key = getattr(self.args, "algo", "scaffold")
         train_args = (
+            f"--algo {algo_key} "
             f"--task {self.args.task} "
             f"--model {self.args.model} "
             f"--train_idx_root {train_idx_root} "

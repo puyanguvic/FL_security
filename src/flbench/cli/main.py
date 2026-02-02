@@ -1,16 +1,63 @@
 from __future__ import annotations
 
 import argparse
+import sys
 
 from flbench.attacks import list_attacks
 from flbench.core.registry import get_algo, list_algos, list_tasks
 from flbench.defenses import list_defenses
+from flbench.utils.cli_kv import load_config_files, normalize_unified_config
 
 
-def build_parser() -> argparse.ArgumentParser:
+def _has_value(cfg: dict | None, key: str) -> bool:
+    if not cfg:
+        return False
+    if key not in cfg:
+        return False
+    v = cfg.get(key)
+    return v is not None and v != ""
+
+
+def _load_config_defaults(argv: list[str]) -> dict:
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument(
+        "--config",
+        action="append",
+        default=[],
+        help="Path to YAML/JSON config (repeatable; later files override earlier).",
+    )
+    args, _ = config_parser.parse_known_args(argv)
+    if not args.config:
+        return {}
+    raw = load_config_files(args.config)
+    return normalize_unified_config(raw)
+
+
+def _filter_defaults(parser: argparse.ArgumentParser, cfg: dict) -> dict:
+    dests = {action.dest for action in parser._actions}
+    return {k: v for k, v in cfg.items() if k in dests and k != "config"}
+
+
+def build_parser(config_defaults: dict | None = None) -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="FLBench (NVFLARE-Lab) simulation runner")
-    p.add_argument("--algo", type=str, required=True, help=f"Algorithm. Available: {', '.join(list_algos())}")
-    p.add_argument("--task", type=str, required=True, help=f"Task. Available: {', '.join(list_tasks())}")
+    p.add_argument(
+        "--config",
+        action="append",
+        default=[],
+        help="Path to YAML/JSON config (repeatable; later files override earlier).",
+    )
+    p.add_argument(
+        "--algo",
+        type=str,
+        required=not _has_value(config_defaults, "algo"),
+        help=f"Algorithm. Available: {', '.join(list_algos())}",
+    )
+    p.add_argument(
+        "--task",
+        type=str,
+        required=not _has_value(config_defaults, "task"),
+        help=f"Task. Available: {', '.join(list_tasks())}",
+    )
     p.add_argument("--model", type=str, default="cnn/moderate", help="Model key (task may ignore it).")
     p.add_argument("--name", type=str, default=None, help="Optional run/job name override")
     p.add_argument(
@@ -143,7 +190,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main():
-    args = build_parser().parse_args()
+    config_defaults = _load_config_defaults(sys.argv[1:])
+    parser = build_parser(config_defaults)
+    if config_defaults:
+        parser.set_defaults(**_filter_defaults(parser, config_defaults))
+    args = parser.parse_args()
 
     # validate
     _ = get_algo(args.algo)
