@@ -1,7 +1,7 @@
 # Base config (optional). CLI flags still take precedence.
 
 algo: fedavg
-task: vision/cifar10
+task: cifar10
 model: cnn/moderate
 
 n_clients: 8

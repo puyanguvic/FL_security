@@ -53,7 +53,7 @@ def main(args):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--task", type=str, default="vision/cifar10", help="Task key (e.g., vision/cifar10).")
+    p.add_argument("--task", type=str, default="cifar10", help="Task key (e.g., cifar10).")
     p.add_argument("--model", type=str, default="cnn/moderate", help="Model key (task resolves it).")
     p.add_argument("--train_idx_root", type=str, default="/tmp/flbench_splits", help="Split index root dir")
     p.add_argument("--aggregation_epochs", type=int, default=4, help="Local epochs per FL round")

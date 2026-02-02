@@ -64,16 +64,16 @@ def _register_builtin() -> None:
     from flbench.algorithms.fedprox.server import run_fedprox
     from flbench.algorithms.scaffold.server import run_scaffold
     from flbench.tasks.sensor.har import task as har_task
-    from flbench.tasks.vision.cifar10 import task as cifar10_task
-    from flbench.tasks.vision.fashionmnist import task as fashion_task
-    from flbench.tasks.vision.tiny_imagenet import task as tiny_task
+    from flbench.tasks.cifar10 import task as cifar10_task
+    from flbench.tasks.fashionmnist import task as fashion_task
+    from flbench.tasks.tiny_imagenet import task as tiny_task
 
     register_algo(AlgoSpec(name="fedavg", run=run_fedavg))
     register_algo(AlgoSpec(name="fedprox", run=run_fedprox))
     register_algo(AlgoSpec(name="scaffold", run=run_scaffold))
     register_task(
         TaskSpec(
-            name="vision/cifar10",
+            name="cifar10",
             build_model=cifar10_task.build_model,
             split_and_save=cifar10_task.split_and_save,
             create_datasets=cifar10_task.create_datasets,
@@ -84,7 +84,7 @@ def _register_builtin() -> None:
     )
     register_task(
         TaskSpec(
-            name="vision/fashionmnist",
+            name="fashionmnist",
             build_model=fashion_task.build_model,
             split_and_save=fashion_task.split_and_save,
             create_datasets=fashion_task.create_datasets,
@@ -95,7 +95,7 @@ def _register_builtin() -> None:
     )
     register_task(
         TaskSpec(
-            name="vision/tiny_imagenet",
+            name="tiny_imagenet",
             build_model=tiny_task.build_model,
             split_and_save=tiny_task.split_and_save,
             create_datasets=tiny_task.create_datasets,

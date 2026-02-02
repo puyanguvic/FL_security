@@ -3,7 +3,7 @@
 A research-ready **NVFLARE experimentation lab** with a clean separation between:
 
 - **Algorithms** (FedAvg/FedProx/SCAFFOLD/…)
-- **Tasks** (vision + sensor datasets)
+- **Tasks** (image + sensor datasets)
 - **Models** (reusable backbones)
 - **Attacks / Defenses** (client update attacks and server aggregation defenses)
 
@@ -39,8 +39,8 @@ src/flbench/
 ## Included modules
 
 - `algo`: `fedavg`, `fedprox`, `scaffold`
-- `task`: `vision/cifar10`, `vision/fashionmnist`, `vision/tiny_imagenet`, `sensor/har`
-- `model`: `cnn/moderate` (plus vision backbones in `models/vision.py`)
+- `task`: `cifar10`, `fashionmnist`, `tiny_imagenet`, `sensor/har`
+- `model`: `cnn/moderate` (plus `vgg11`/`alexnet` in `models/`)
 
 ## Quickstart (uv)
 
@@ -49,10 +49,10 @@ uv venv
 uv pip install -e .
 
 # Run FedAvg on CIFAR-10 (simulation)
-flbench-run --algo fedavg --task vision/cifar10 --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
+flbench-run --algo fedavg --task cifar10 --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
 
 # Run FedAvg on FashionMNIST (simulation)
-flbench-run --algo fedavg --task vision/fashionmnist --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
+flbench-run --algo fedavg --task fashionmnist --model cnn/moderate --n_clients 8 --num_rounds 20 --alpha 0.5
 ```
 
 ## Where outputs go
